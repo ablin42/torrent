@@ -30,7 +30,7 @@ function queryToHtml (query) {
   let result = "";
   query.forEach((query) => {
       result += `<div class="torrent-container">
-                  <p class="torrent-name")>${query.name}</p>
+                  <p class="torrent-name">${query.name}</p>
                   <a href="${query.link}" class="torrent-link"> link </a>
                   <i class="torrent-date">upload date ${query.uploadDate}</i>
                   </div>`;
