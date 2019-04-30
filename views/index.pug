@@ -1,0 +1,13 @@
+doctype html
+html
+  head
+    title Results
+    link(rel='stylesheet', href='/css/style.css')
+  body
+  a(href="", style="position:fixed") load
+  div(class="result-container")
+    each torrent, i in torrents
+      div(class="torrent-container")
+        p(class="torrent-name")= torrent.name
+        a(href=torrent.link, class="torrent-link") link
+        i(class="torrent-date")= "upload date"+torrent.uploadDate
