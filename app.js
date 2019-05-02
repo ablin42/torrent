@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const PirateBay = require('thepiratebay');
 const pug = require('pug');
 const torrents = require('./api/torrents');
+const leetx = require('./api/leetx')
 
 // Load View Engine
 app.set('views', path.join(__dirname, 'views'));
@@ -36,42 +37,18 @@ app.get('/tpb', async (req, res) => {
   });
   res.render('index', {
       torrents: query
-});
-
+    });
   //res.status(200).send();
 })
 
+app.get('/test', async (req, res) => {
 
-app.post('/', async (req, res) => {
+  await leetx.search("pirate", function(err, results) {
+    console.log(results) // returns name, seeders, leechers, url
+  })
 
-async function searchTorrent (query, type, amount) {
-  console.log(query, type, amount);
-  try {
-    var torrents = await TorrentSearchApi.search(query, type, amount);
-  } catch (e) {
-    console.log(`error: ${e}`);
-  }
-  return (torrents);
-}
+  res.status(200).send();
+})
 
-async function detailTorrent(torrent) {
-  try {
-    var details = await TorrentSearchApi.getTorrentDetails(torrent);
-  } catch (e) {
-    console.log(`error: ${e}`);
-  }
-  return (details);
-}
-
-    torrents = await searchTorrent(req.body.query, req.body.type, req.body.amount);
-    //torrents.sort((a, b) => (a.seeds > b.seeds) ? 1 : -1);
-    for (var i = 0, len = torrents.length; i < len; i++){
-      console.log(`${i} - ${torrents[i].seeds} - ${torrents[i].title} - ${torrents[i].provider}`);
-    }
-  //  console.log(torrents);
-  //  details = await detailTorrent(torrents[0]);
-  //  console.log(details);
-    res.status(200).send();
-});
 const port = process.env.PORT || 8089;
 app.listen(port, () => console.log(`Listening on port ${port}...`));

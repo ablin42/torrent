@@ -1,7 +1,9 @@
+let page = 1;
+
 function loadMore(e){
   e.preventDefault();
-
-  fetch('http://localhost:8089/api/torrents/search/game+of+thrones/3', {
+  page++;
+  fetch(`http://localhost:8089/api/torrents/search/game+of+thrones/${page}`, {
       method: 'get',
       mode: 'same-origin',
       headers: {'Content-Type': 'application/json' }, //sent
@@ -10,4 +12,5 @@ function loadMore(e){
     .then((data) => {
         document.getElementById('result-container').innerHTML += data;
       })
+      console.log(test);
 }
