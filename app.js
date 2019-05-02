@@ -43,9 +43,10 @@ app.get('/tpb', async (req, res) => {
 
 app.get('/test', async (req, res) => {
 
-  await leetx.search("pirate", function(err, results) {
-    console.log(results) // returns name, seeders, leechers, url
-  })
+  var torrents = await leetx.search("pirate");//, function(err, results) {
+    //console.log(results) // returns name, seeders, leechers, url
+//  })
+//console.log(torrents);
 
   res.status(200).send();
 })
