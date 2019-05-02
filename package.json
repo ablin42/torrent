@@ -18,5 +18,8 @@
     "thepiratebay": "^1.4.7",
     "torrent-search-api": "^2.0.8",
     "torrents-search": "^2.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.0"
   }
 }
