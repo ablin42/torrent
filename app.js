@@ -7,6 +7,7 @@ const PirateBay = require('thepiratebay');
 const pug = require('pug');
 const torrents = require('./api/torrents');
 const leetx = require('./api/leetx')
+const search = require('./search-torrent')
 
 // Load View Engine
 app.set('views', path.join(__dirname, 'views'));
@@ -23,6 +24,11 @@ app.use(bodyParser.json());
 
 // Define posts router
 app.use('/api/torrents', torrents);
+
+app.get('/both', (req, res) => {
+  search.searchTorrent("pirate", 0);
+  res.status(200).send();
+})
 
 app.get('/tpb', async (req, res) => {
                                     //req.body.query
@@ -43,7 +49,7 @@ app.get('/tpb', async (req, res) => {
 
 app.get('/test', async (req, res) => {
 
-  var torrents = await leetx.search("pirate");//, function(err, results) {
+  var torrents = await leetx.search("pirate", 1);//, function(err, results) {
     //console.log(results) // returns name, seeders, leechers, url
 //  })
 //console.log(torrents);

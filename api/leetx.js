@@ -8,9 +8,10 @@ let leetxURL = 'http://1337x.to'
 
 async function loopThroughTorrent($) {
   let torrents = [];
-  const torrent = {};
 
   $('table.table-list tr').each(function(index, el){
+    let torrent = {};
+    let i = torrents.length;
     torrent.name = $(this).find('td:nth-child(1) a:nth-child(2)').text();
     torrent.seeders = $(this).find('td:nth-child(2)').text();
     torrent.leechers = $(this).find('td:nth-child(3)').text();
@@ -19,13 +20,12 @@ async function loopThroughTorrent($) {
       return;
     }
     if (torrent.name !== '') {
-      torrents.push(torrent)
+      torrents[i] = torrent
     }
     torrent.date = $(this).find('td:nth-child(4)').text();
     torrent.size = $(this).find('td:nth-child(5)').text();
-    torrent.size = $(this).find('td:nth-child(5)').text();
+    torrent.size = torrent.size.substr(0, torrent.size.indexOf("B") + 1);
   });
-
   return torrents;
 }
 
@@ -40,34 +40,36 @@ async function getTorrentsImg(torrents) {
 }
 
 module.exports = {
-  search: async function(query, cb, category = null) {
+  search: async function(query, page) {
     console.log("begin");
     console.time("time this");
-    let reqURL = `${leetxURL}/category-search/${query}/Movies/1/`;
+    let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
 
     const response = await request(reqURL);
     const $ = cheerio.load(response);
     let torrents = await loopThroughTorrent($);
     torrents = await getTorrentsImg(torrents);
-    Promise.all(
+    result = await Promise.all(
         [response, $, torrents]).then(function() {
-          console.log(torrents);
+          console.timeEnd("time this");
+          return torrents;
         });
-     console.timeEnd("time this"); 
-  }
+    return result;
+  },
+  topTorrents: async function() {
+    let reqURL = `https://1337x.to/top-100-movies`;
 
-    // try {
-    //   const response = await request(reqURL);
-    //   const $ = cheerio.load(response);
-      
-    //   let torrents = await loopThroughTorrent($);
-    //   torrents = await getTorrentsImg(torrents);
-    //   console.log(torrents);
-    // } catch (error) {
-    //   return Promise.reject(error);
-    // }
-  //  console.timeEnd("time this"); //4699ms
+    const response = await request(reqURL);
+    const $ = cheerio.load(response);
+    let torrents = await loopThroughTorrent($);
+    torrents = await getTorrentsImg(torrents);
+    result = await Promise.all(
+        [response, $, torrents]).then(function() {
+          return torrents;
+        });
+    return result;
   }
+}
 
 
 
