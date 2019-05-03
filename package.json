@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "cheerio": "^1.0.0-rc.3",
     "express": "^4.16.4",
     "infinite-scroll": "^3.0.6",
     "pug": "^2.0.3",
@@ -20,6 +21,9 @@
     "torrents-search": "^2.0.6"
   },
   "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.17.2",
     "nodemon": "^1.19.0"
   }
 }
