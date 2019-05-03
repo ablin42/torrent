@@ -50,11 +50,22 @@ app.get('/tpb', async (req, res) => {
 app.get('/test', async (req, res) => {
 
   var torrents = await leetx.search("pirate", 1);//, function(err, results) {
-    //console.log(results) // returns name, seeders, leechers, url
+    torrents.forEach((item, index) => {
+      console.log(item.imdb);
+    }) // returns name, seeders, leechers, url
 //  })
 //console.log(torrents);
 
   res.status(200).send();
+})
+
+app.get('/1337', async (req, res) => {
+  TorrentSearchApi.enableProvider('1337x');
+  const torrents = await TorrentSearchApi.search('1080', 'Movies', 20);
+  const detail = await TorrentSearchApi.getTorrentDetails(torrents[0])
+  console.log(detail)
+  //console.log(torrents);
+  res.status(200).send(torrents);
 })
 
 const port = process.env.PORT || 8089;
