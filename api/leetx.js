@@ -29,7 +29,7 @@ async function loopThroughTorrent($) {
   return torrents;
 }
 
-async function processArray(torrents) {
+async function getTorrentsImg(torrents) {
   for (const [index, torrent] of torrents.entries()) {
     const responseTorrent = await request(leetxURL + torrent.url);
     const $descPage = cheerio.load(responseTorrent);
@@ -41,21 +41,38 @@ async function processArray(torrents) {
 
 module.exports = {
   search: async function(query, cb, category = null) {
-    console.log("toto");
+    console.log("begin");
+    console.time("time this");
     let reqURL = `${leetxURL}/category-search/${query}/Movies/1/`;
 
-    try {
-      const response = await request(reqURL);
-      const $ = cheerio.load(response);
-      
-      let torrents = await loopThroughTorrent($);
-      torrents = await processArray(torrents);
-      console.log(torrents);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    const response = await request(reqURL);
+    const $ = cheerio.load(response);
+    let torrents = await loopThroughTorrent($);
+    torrents = await getTorrentsImg(torrents);
+    Promise.all(
+        [response, $, torrents]).then(function() {
+          console.log(torrents);
+        });
+     console.timeEnd("time this"); 
   }
-}
+
+    // try {
+    //   const response = await request(reqURL);
+    //   const $ = cheerio.load(response);
+      
+    //   let torrents = await loopThroughTorrent($);
+    //   torrents = await getTorrentsImg(torrents);
+    //   console.log(torrents);
+    // } catch (error) {
+    //   return Promise.reject(error);
+    // }
+  //  console.timeEnd("time this"); //4699ms
+  }
+
+
+
+
+
 
 // // Modules
 // const request = require('request-promise')
