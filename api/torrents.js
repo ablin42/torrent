@@ -2,26 +2,24 @@ const express = require('express');
 const router = express.Router();
 const PirateBay = require('thepiratebay');
 const leetx = require('./leetx')
-
+const tpb = require('./tpb')
 
 //fetch info from query, fetch the page and return its torrents
 router.get('/search/:q/:p', async (req, res) => {
   let query = req.params.q,
       page = req.params.p;
 
-  const leetxTorrents = await leetx.search(query, page + 1)
-  const tpbTorrents = await PirateBay.search(query, {
-  category: 'video', // You can also use the category number: `/search/0/99/{category_number}`
-  filter: {
-    verified: false    // default - false | Filter all VIP or trusted torrents
-  },
-  page: req.params.p,            // default - 0 - 99
-  orderBy: 'name', // default - name, date, size, seeds, leeches
-  sortBy: 'desc'      // default - desc, asc
-  });
+  let leetxTorrents = await leetx.search(query, page + 1, {})
+      leetxTorrents = await [...leetxTorrents, ...await leetx.search(query, page + 2, {})];
+        leetxTorrents = await [...leetxTorrents, ...await leetx.search(query, page + 3, {})];
+          leetxTorrents = await [...leetxTorrents, ...await leetx.search(query, page + 4, {})];
+  // let tpbTorrents = await tpb.search(query, page, {});
+  //   tpbTorrents = [...tpbTorrents, await tpb.search(query, page + 1, {})];
+  //     tpbTorrents = [...tpbTorrents, await tpb.search(query, page + 2, {})];
+  //       tpbTorrents = [...tpbTorrents, await tpb.search(query, page + 2, {})];
 
-  result = torrentToObject(leetxTorrents, tpbTorrents);
-  sortedResult = result.sort(nameSort);
+  let tpbTorrents = []
+  sortedResult = [...leetxTorrents, ...tpbTorrents].sort(nameSort);
   res.status(200).send(sortedResult);
 })
 
@@ -38,46 +36,12 @@ router.get('/:id', async (req, res) => {
     res.status(200).send(query);
 })
 
-
-
 async function topTorrents() {
   leetxTop = await leetx.topTorrents();
   tpbTop = await PirateBay.topTorrents(200);//category (200 = hd - tv shows)
 
-  result = torrentToObject(leetxTop, tpbTop);
-  sortedResult = result.sort(function(a, b){return b.seeders - a.seeders})
+  sortedResult = [...leetxTop, ...tpbTop].sort(function(a, b){return b.seeders - a.seeders})
   return sortedResult;
-}
-
-function torrentToObject(leetxTorrents, tpbTorrents) {
-  let result = [];
-
-  leetxTorrents.forEach((item, index) => {
-    let obj = {};
-
-    obj.name = item.name;
-    obj.date = item.date;
-    obj.url = item.url;
-    obj.img = item.img;
-    obj.size = item.size;
-    obj.seeders = item.seeders;
-    obj.leechers = item.leechers;
-    result.push(obj);
-  })
-
-  tpbTorrents.forEach((item, index) => {
-    let obj = {};
-
-    obj.name = item.name;
-    obj.date = item.uploadDate;
-    obj.url = item.link;
-    obj.img = ""; //get img?
-    obj.size = item.size;
-    obj.seeders = item.seeders;
-    obj.leechers = item.leechers;
-    result.push(obj);
-  })
-  return result;
 }
 
 function nameSort(a, b){

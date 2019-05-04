@@ -2,6 +2,7 @@
 const request = require('request-promise')
 const cheerio = require('cheerio')
 const Xray = require('x-ray')
+const imdb = require('imdb-api')
 
 const xray = new Xray();
 
@@ -9,10 +10,11 @@ const xray = new Xray();
 // 1337x.to base URL
 let leetxURL = 'http://1337x.to'
 
-async function loopThroughTorrent($) {
-  let torrents = [];
+function loopThroughTorrent($) {
+  const torrents = [];
 
-  $('table.table-list tr').each(function(index, el){
+  // eslint-disable-next-line func-names
+  $('table.table-list tr').each(function (index, item) {
     let torrent = {};
     torrent.name = $(this).find('td:nth-child(1) a:nth-child(2)').text();
     torrent.seeders = $(this).find('td:nth-child(2)').text();
@@ -21,9 +23,11 @@ async function loopThroughTorrent($) {
     if (!torrent.url) {
       return;
     }
+    torrent.url = leetxURL + torrent.url;
     if (torrent.name !== '') {
       torrents[index] = torrent
     }
+
     torrent.date = $(this).find('td:nth-child(4)').text();
     torrent.size = $(this).find('td:nth-child(5)').text();
     torrent.size = torrent.size.substr(0, torrent.size.indexOf("B") + 1);
@@ -34,38 +38,36 @@ async function loopThroughTorrent($) {
 async function getTorrentsImg(torrents) {
   await Promise.all(
     torrents.map(async (torrent, index) => {
-      const responseTorrent = await request(leetxURL + torrent.url);
+      torrent.img = null;
+      torrent.imdb = null;
+      torrent.imdbid = null;
+      torrent.rawMagnet = null;
+      const responseTorrent = await request(torrent.url);
       const $descPage = cheerio.load(responseTorrent);
-      torrents[index].imdb = $descPage('#description').text();
-      torrents[index].imdb = torrents[index].imdb.substr(torrents[index].imdb.indexOf('http://www.imdb.com/title/tt'), 35);
-      torrents[index].img = $descPage('#description img.descrimg').attr('data-original');
+      torrent.imdbid = $descPage('#description').text().match(/(?<=https?\:\/\/www\.imdb\.com\/title\/)tt(.{7})/g);
+      torrent.rawMagnet = $descPage('div.torrent-category-detail > ul.download-links-dontblock > li:nth-child(1) > a').attr('href');
+      if (torrent.imdbid != null) {
+        torrent.imdb = await imdb.get({id: torrent.imdbid[0]}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+      }
+      else {
+        torrent.img = $descPage('#description img.descrimg').attr('data-original');
+      }
     })
   );
   return torrents;
 }
 
-async function testTorrentsImg(torrents) {
-  for (const [index, torrent] of torrents.entries()) {
-    const response = await xray(torrents[index].url, 'img .descrimg', [{
-      imgURL : 'img@src'
-    }])((err, res) => {
-      console.log(res);
-    })
-  }
-  return torrents;
-}
-
 module.exports = {
-  search: async function(query, page) {
-    console.log("begin");
+  search: async function(query, page, sort) {
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
-
+    if (sort.type !== undefined)
+      reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
     try {
      const response = await request(reqURL);
      const $ = cheerio.load(response);
 
      let torrents = await loopThroughTorrent($);
-     //test(torrents);
+     //torrents = await testTorrentsImg(torrents);
      torrents = await getTorrentsImg(torrents);
      return torrents
     } catch (error) {return Promise.reject(error);}
