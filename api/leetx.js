@@ -51,7 +51,7 @@ module.exports = {
   // Search for a torrent page on leetx, return scraped results
   search: async function(query, page, sort) {
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
-    if (sort.type !== undefined)
+    if (sort.type !== undefined && sort.type !== "name")
       reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
     console.log(reqURL);
 

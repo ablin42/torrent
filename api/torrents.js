@@ -25,22 +25,12 @@ router.get('/top', async (req, res) => {
   res.status(200).send(result);
 })
 
-router.get('/test', (req, res) => {
-  let item = "name";
-  let obj = {
-    "oof": "lol",
-    "name": "blabla",
-    "test": "xd,"
-  }
-  console.log(obj[item]);
-  res.status(200).send(obj[item]);
-})
-
 //function toptorrents and search
 async function topTorrents () {
-  leetxTop = await leetx.topTorrents();
-  tpbTop = await tpb.topTorrents();
+  leetxTop = leetx.topTorrents();
+  tpbTop = tpb.topTorrents();
 
+  [leetxTop, tpbTop] = [await leetxTop, await tpbTop]
   sortedResult = [...leetxTop, ...tpbTop].sort(function(a, b){return b.seeders - a.seeders});
   if (sortedResult.length === 0)
     return "No content found, please try again later.";
@@ -57,16 +47,32 @@ async function searchTorrents(query, page, type, order) {
   if (page < 0)
     return "Invalid page number";
   if (allowedType.indexOf(type) != -1 && allowedOrder.indexOf(order) != -1 || !sort){
-    let leetxTorrents = await leetx.search(query, page + 1, sort);
-    let tpbTorrents = await tpb.search(query, page, sort);
+    let leetxTorrents = leetx.search(query, page + 1, sort);
+    let tpbTorrents =  tpb.search(query, page, sort);
 
+    [leetxTorrents, tpbTorrents] = [await leetxTorrents, await tpbTorrents]
     //sortedResult = [...leetxTorrents, ...tpbTorrents].sort(nameSort);
-    sortedResult = [...leetxTorrents, ...tpbTorrents]//.sort(function (a, b){return a[type] - b[type]});
+    sortedResult = [...leetxTorrents, ...tpbTorrents]//.sort(function (a, b){return a.name - b.name});
     if (sortedResult.length === 0)
       return "No content found";
     return sortedResult
   }
   return "Wrong parameters.";
+}
+
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a,b) {
+        /* next line works with strings and numbers,
+         * and you may want to customize it to your needs
+         */
+        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        return result * sortOrder;
+    }
 }
 
 function typeSort(a, b, type){
