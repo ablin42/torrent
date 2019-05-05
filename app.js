@@ -1,23 +1,15 @@
+// Load Modules
 const express = require('express');
-const app = express();
 const path = require('path');
-const TorrentSearchApi = require('torrent-search-api');
 const bodyParser = require('body-parser');
-const PirateBay = require('thepiratebay');
-const pug = require('pug');
+
+// Load Own Modules
 const torrents = require('./api/torrents');
 const leetx = require('./api/leetx')
-const search = require('./search-torrent')
 const tpb = require('./api/tpb');
 
-const imdb = require('imdb-api');
-
-// Load View Engine
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
-
-// Set Public Folder
-app.use(express.static(path.join(__dirname, 'public')));
+// Set Engine
+const app = express();
 
 // Body Parser Middleware
 // Parse app/x-www-form-urlencoded
@@ -28,19 +20,13 @@ app.use(bodyParser.json());
 // Define posts router
 app.use('/api/torrents', torrents);
 
-app.get('/both', (req, res) => {
-  search.searchTorrent("pirates", 0);
-  res.status(200).send();
-})
-
 app.get('/tpb', async (req, res) => {
-  let torrents = await tpb.search('pirates', 0);
+  let torrents = await tpb.search('pirates', 0, {type: "name", order: "asc"});
   res.status(200).send(torrents);
 })
 
-app.get('/test', async (req, res) => {
-
-  let torrents = await leetx.search("pirate", 1, {});
+app.get('/leetx', async (req, res) => {
+  let torrents = await leetx.search("pirate", 1, {type: "size", order: "desc"});
   res.status(200).send(torrents);
 })
 
