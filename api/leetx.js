@@ -33,11 +33,15 @@ async function getTorrentsInfo(torrents) {
         img: "#description img.descrimg@data-original",
         rawMagnet: "div.torrent-category-detail > ul.download-links-dontblock > li:nth-child(1) > a@href"
       }])
-      torrent.url = null;
+      torrent.url = undefined;
       torrent.imdbid = arr[0].imdbid.match(/(?<=https?\:\/\/www\.imdb\.com\/title\/)tt(.[0-9]+)/g);
       torrent.rawMagnet = arr[0].rawMagnet;
       if (torrent.imdbid != null) {
         torrent.imdb = await imdb.get({id: torrent.imdbid[0]}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+        torrent.rating = torrent.imdb.rating;
+        torrent.genre = torrent.imdb.genres;
+        torrent.year = torrent.imdb.year;
+        torrent.released = torrent.imdb.released;
       }
       else {
         torrent.img = arr[0].img;

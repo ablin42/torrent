@@ -29,10 +29,14 @@ async function getTorrentsInfo(torrents) {
       torrent.imdb = null;
       torrent.imdbid = null;
       const responseTorrent = await request(torrent.url);
-      torrent.url = null;
+      torrent.url = undefined;
       torrent.imdbid = responseTorrent.match(/(?<=https?\:\/\/www\.imdb\.com\/title\/)tt(.[0-9]+)/g);
       if (torrent.imdbid != null) {
         torrent.imdb = await imdb.get({id: torrent.imdbid[0]}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+        torrent.rating = torrent.imdb.rating;
+        torrent.genre = torrent.imdb.genres;
+        torrent.year = torrent.imdb.year;
+        torrent.released = torrent.imdb.released;
       }
     })
   );
@@ -45,14 +49,14 @@ module.exports = {
     let sortType = {
       "nameasc": 1,
       "namedesc": 2,
-      "timeasc": 3,
-      "timedesc": 4,
+      "timedesc": 3,
+      "timeasc": 4,
       "sizeasc": 5,
       "sizedesc": 6,
-      "seedersasc": 7,
-      "seedersdesc": 8,
-      "leechersasc": 9,
-      "leechersdesc": 10
+      "seedersdesc": 7,
+      "seedersasc": 8,
+      "leechersdesc": 9,
+      "leechersasc": 10
     }
     sort = sortType[sort.type+sort.order];
     if (sort === undefined)

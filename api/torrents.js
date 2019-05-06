@@ -38,7 +38,7 @@ async function topTorrents () {
 }
 
 async function searchTorrents(query, page, type, order) {
-  const allowedType = ["name", "time", "size", "seeders", "leechers"];
+  const allowedType = ["name", "time", "size", "seeders", "leechers", "rating"];
   const allowedOrder = ["asc", "desc"];
   let sort = {};
   if (type && order) {
@@ -49,28 +49,28 @@ async function searchTorrents(query, page, type, order) {
   if (allowedType.indexOf(type) != -1 && allowedOrder.indexOf(order) != -1 || !sort){
     let leetxTorrents = leetx.search(query, page + 1, sort);
     let tpbTorrents =  tpb.search(query, page, sort);
+    let sortType = "";
+    if (order === "desc")
+      sortType += "-";
+    sortType += type;
 
     [leetxTorrents, tpbTorrents] = [await leetxTorrents, await tpbTorrents]
-    //sortedResult = [...leetxTorrents, ...tpbTorrents].sort(nameSort);
-    sortedResult = [...leetxTorrents, ...tpbTorrents]//.sort(function (a, b){return a.name - b.name});
+    sortedResult = [...leetxTorrents, ...tpbTorrents].sort(dynamicSort(sortType));
     if (sortedResult.length === 0)
       return "No content found";
-    return sortedResult
+    return sortedResult;
   }
   return "Wrong parameters.";
 }
 
 function dynamicSort(property) {
-    var sortOrder = 1;
+    var sortOrder = -1;
     if(property[0] === "-") {
         sortOrder = -1;
         property = property.substr(1);
     }
     return function (a,b) {
-        /* next line works with strings and numbers,
-         * and you may want to customize it to your needs
-         */
-        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        let  result = a[property] - b[property]
         return result * sortOrder;
     }
 }
