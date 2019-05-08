@@ -38,17 +38,17 @@ async function topTorrents () {
 }
 
 async function searchTorrents(query, page, type, order) {
-  const allowedType = ["name", "time", "size", "seeders", "leechers", "rating"];
+  const allowedType = ["name", "size", "seeders", "leechers", "rating"];
   const allowedOrder = ["asc", "desc"];
   let sort = {};
   if (type && order) {
     sort = {"type": type, "order": order};
   }
-  if (page < 0)
+  if (+page < 0)
     return "Invalid page number";
   if (allowedType.indexOf(type) != -1 && allowedOrder.indexOf(order) != -1 || !sort){
-    let leetxTorrents = leetx.search(query, page + 1, sort);
-    let tpbTorrents =  tpb.search(query, page, sort);
+    let leetxTorrents = leetx.search(query, +page + 1, sort);
+    let tpbTorrents = tpb.search(query, +page, sort);
     let sortType = "";
     if (order === "desc")
       sortType += "-";

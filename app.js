@@ -5,8 +5,11 @@ const bodyParser = require('body-parser');
 
 // Load Own Modules
 const torrents = require('./api/torrents');
+const popcorn = require('./api/popcorn')
 const leetx = require('./api/leetx')
 const tpb = require('./api/tpb');
+const ygg = require('./api/ygg');
+const yts = require('./api/yts');
 
 // Set Engine
 const app = express();
@@ -17,8 +20,11 @@ app.use(bodyParser.urlencoded({extended: false}));
 // Parse app/json
 app.use(bodyParser.json());
 
-// Define posts router
+// Define routers
 app.use('/api/torrents', torrents);
+app.use('/api/popcorn', popcorn);
+app.use('/api/ygg', ygg);
+app.use('/api/yts', yts);
 
 app.get('/tpb', async (req, res) => {
   let torrents = await tpb.search('pirates', 0, {type: "name", order: "asc"});

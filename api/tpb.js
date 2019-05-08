@@ -15,22 +15,23 @@ async function fetchPageTorrents(reqURL) {
     url: '.detName .detLink@href',
     rawMagnet: 'td:nth-child(2) a:nth-child(2)@href',
     seeders: 'td:nth-child(3)',
-    leechers: 'td:nth-child(4)'
+    leechers: 'td:nth-child(4)',
+    size: 'font.detDesc'
   }])
-
+  torrents.forEach(e => {e.size = e.size.match(/,\s*Size\s*(.*?\s*...),/)[1];});
   return torrents;
 }
 
 // Get page info for each torrent in the array
 async function getTorrentsInfo(torrents) {
   await Promise.all(
-    torrents.map(async (torrent, index) => {
+    torrents.map(async (torrent, index, tab) => {
       torrent.img = null;
       torrent.imdb = null;
       torrent.imdbid = null;
       const responseTorrent = await request(torrent.url);
       torrent.url = undefined;
-      torrent.imdbid = responseTorrent.match(/(?<=https?\:\/\/www\.imdb\.com\/title\/)tt(.[0-9]+)/g);
+      torrent.imdbid = responseTorrent.match(/(?<=\:\/\/www\.imdb\.com\/title\/)tt([0-9]+)/g);
       if (torrent.imdbid != null) {
         torrent.imdb = await imdb.get({id: torrent.imdbid[0]}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
         torrent.rating = torrent.imdb.rating;
@@ -38,9 +39,12 @@ async function getTorrentsInfo(torrents) {
         torrent.year = torrent.imdb.year;
         torrent.released = torrent.imdb.released;
       }
+      else {
+        torrents[index] = null;
+      }
     })
   );
-  return torrents;
+  return torrents.filter(e => e);
 }
 
 module.exports = {
@@ -49,8 +53,6 @@ module.exports = {
     let sortType = {
       "nameasc": 1,
       "namedesc": 2,
-      "timedesc": 3,
-      "timeasc": 4,
       "sizeasc": 5,
       "sizedesc": 6,
       "seedersdesc": 7,
