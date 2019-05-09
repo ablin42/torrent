@@ -23,6 +23,19 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   res.status(200).send(result);
 })
 
+router.get('/top', async (req, res) => {
+  result = await topTorrents();
+
+  res.status(200).send(result);
+})
+
+router.get('/movie/:id', async (req, res) => {
+  const id = req.params.id;
+  result = await searchMovie(id);
+
+  res.status(200).send(result);
+})
+
 // router.get('/search/:query/:page/:type/:order/:genre', async (req, res) => {
 //   const query = req.params.query;
 //   const page = req.params.page;
@@ -39,6 +52,7 @@ function fetchUsefulData(movies) {
   if (movies.data.movies) {
     movies.data.movies.forEach((item, index) => {
       let obj = {
+        source: "yts",
         id: item.id,
         imdbid: item.imdb_code,
         name: item.title_english,
@@ -86,6 +100,48 @@ async function searchYts(query, page, genre, sort) {
   movies = await request(url);
   result = fetchUsefulData(JSON.parse(movies));
   return result;
+}
+
+async function searchMovie(id) {
+  let url = `https://yts.am/api/v2/movie_details.json?movie_id=${id}`;
+  result = await request(url);
+  parsed = JSON.parse(result);
+
+  let obj = {
+    source: "yts",
+    id: parsed.data.movie.id,
+    imdbid: parsed.data.movie.imdb_code,
+    name: parsed.data.movie.title_english,
+    slug: parsed.data.movie.slug,
+    date: parsed.data.movie.date_uploaded,
+    year: parsed.data.movie.year,
+    runtime: parsed.data.movie.runtime,
+    genre: parsed.data.movie.genres,
+    language: parsed.data.movie.language,
+    img: parsed.data.movie.large_cover_image,
+    rating: parsed.data.movie.rating,
+    torrents: parsed.data.movie.torrents,
+    description: parsed.data.movie.description_full,
+  };
+
+  obj.torrents.forEach((item, index) => {
+    item.magnet = constructMagnet(item.hash, obj.slug);
+  })
+
+  return obj;
+}
+
+async function topTorrents() {
+  let url = "https://yts.am/api/v2/list_movies.json?limit=50&page=1&sort_by=download_count&order_by=desc";
+  result = await request(url);
+
+  return fetchUsefulData(JSON.parse(result));
+}
+
+function constructMagnet(torrent_hash, movie_name) {
+  let magnet = `magnet:?xt=urn:btih:${torrent_hash}&dn=${movie_name}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://glotorrents.pw:6969/announce`;
+
+  return magnet;
 }
 
 module.exports = router;
