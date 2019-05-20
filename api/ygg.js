@@ -21,15 +21,14 @@ router.get('/', async (req, res) => {
 
   await client.search(function(result, page) {
       result.forEach((item, index) => {
-        console.log(item , index)
-        client.get_nfo(function(result) {
-          console.log(result);
-          //array
-        }, item.id);
+        // client.get_nfo(function(result) {
+        //   console.log(result);
+        //   //array
+        // }, item.id);
       })
       res.status(200).send(result);
   }, 'interstellar', '2139', '2148');
-  
+
 })
 
 

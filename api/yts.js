@@ -19,7 +19,18 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const type = req.params.type;
   const order = req.params.order;
 
-  const result = await searchYts(query, page, "", {type:type, order:order});
+  const result = await ytsSearch(query, page, "", {type:type, order:order});
+  res.status(200).send(result);
+})
+
+router.get('/search/:query/:page/:type/:order/:genre', async (req, res) => {
+  const query = req.params.query;
+  const page = req.params.page;
+  const type = req.params.type;
+  const order = req.params.order;
+  const genre = req.params.genre;
+
+  const result = await ytsSearch(query, page, genre, {type:type, order:order});
   res.status(200).send(result);
 })
 
@@ -36,16 +47,12 @@ router.get('/movie/:id', async (req, res) => {
   res.status(200).send(result);
 })
 
-// router.get('/search/:query/:page/:type/:order/:genre', async (req, res) => {
-//   const query = req.params.query;
-//   const page = req.params.page;
-//   const type = req.params.type;
-//   const order = req.params.order;
-//   const genre = req.params.genre;
-//
-//   const result = await searchYts(query, page, genre, {type:type, order:order});
-//   res.status(200).send(result);
-// })
+router.get('/suggest/:id', async (req, res) => {
+  const id = req.params.id;
+  result = await suggestMovie(id);
+
+  res.status(200).send(result);
+})
 
 function fetchUsefulData(movies) {
   let result = [];
@@ -58,8 +65,8 @@ function fetchUsefulData(movies) {
         name: item.title_english,
         seeders: item.torrents[0].seeds,
         leechers: item.torrents[0].peers,
-        date: item.date_uploaded,
         size: item.torrents[0].size,
+        date: item.date_uploaded,
         year: item.year,
         runtime: item.runtime,
         genre: item.genres,
@@ -67,13 +74,25 @@ function fetchUsefulData(movies) {
         img: item.large_cover_image,
         rating: item.rating
       };
+      if (!obj.img){
+        obj.img = item.medium_cover_image;
+      }
+      if (item.torrents) {
+        item.torrents.forEach((torrent, tindex) => {
+          if (torrent.seeds + torrent.peers > obj.seeders + obj.leechers){
+              obj.seeders= item.torrents[tindex].seeds;
+              obj.leechers= item.torrents[tindex].peers;
+              obj.size= item.torrents[tindex].size;
+            }
+          })
       result.push(obj);
+      }
     })
   }
   return result;
 }
 
-async function searchYts(query, page, genre, sort) {
+async function ytsSearch(query, page, genre, sort) {
   const limit = 50;
   const allowedGenre = ["Action", "Adventure","Animation","Biography","Comedy","Crime","Documentary","Drama","Family","Fantasy"
                         ,"Film Noir","History","Horror","Music","Musical","Mystery","Romance","Sci-Fi","Short","Sport",
@@ -98,12 +117,13 @@ async function searchYts(query, page, genre, sort) {
   }
 
   movies = await request(url);
-  result = fetchUsefulData(JSON.parse(movies));
-  return result;
+  return fetchUsefulData(JSON.parse(movies));
 }
 
 async function searchMovie(id) {
-  let url = `https://yts.am/api/v2/movie_details.json?movie_id=${id}`;
+  if (id <= 0)
+    return "Please enter a valid ID";
+  let url = `https://yts.am/api/v2/movie_details.json?movie_id=${id}&with_images=true&with_cast=true`;
   result = await request(url);
   parsed = JSON.parse(result);
 
@@ -123,11 +143,13 @@ async function searchMovie(id) {
     torrents: parsed.data.movie.torrents,
     description: parsed.data.movie.description_full,
   };
-
-  obj.torrents.forEach((item, index) => {
-    item.magnet = constructMagnet(item.hash, obj.slug);
-  })
-
+  if (obj.id === 0)
+    return "There is no movie with this ID";
+  if (obj.torrents) {
+    obj.torrents.forEach((item, index) => {
+      item.magnet = constructMagnet(item.hash, obj.slug);
+    })
+  }
   return obj;
 }
 
@@ -138,10 +160,19 @@ async function topTorrents() {
   return fetchUsefulData(JSON.parse(result));
 }
 
-function constructMagnet(torrent_hash, movie_name) {
-  let magnet = `magnet:?xt=urn:btih:${torrent_hash}&dn=${movie_name}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://glotorrents.pw:6969/announce`;
+async function suggestMovie(id) {
+  movieInfo = await searchMovie(id);
+  if (typeof movieInfo !== 'object') {
+    return movieInfo;
+  }
+  let url = `https://yts.am/api/v2/movie_suggestions.json?movie_id=${id}`;
+  result = await request(url);
 
-  return magnet;
+  return fetchUsefulData(JSON.parse(result));
+}
+
+function constructMagnet(torrent_hash, movie_name) {
+  return `magnet:?xt=urn:btih:${torrent_hash}&dn=${movie_name}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://glotorrents.pw:6969/announce`;
 }
 
 module.exports = router;
