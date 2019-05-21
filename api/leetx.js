@@ -94,6 +94,8 @@ async function getTorrentsInfo(torrents) {
 
 // Search for a torrent page on leetx, return scraped results
 async function leetxSearch(query, page, sort) {
+    const allowedType = ["time", "size", "seeders", "leechers"];
+    const allowedOrder = ["asc", "desc"];
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
     if (sort.type === "name" && sort.order === "desc"){
       const reqLastPage = await xray(reqURL, 'body', [{
@@ -108,7 +110,7 @@ async function leetxSearch(query, page, sort) {
       }
     }
     reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
-    if (sort.type !== undefined && sort.type !== "name")
+    if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
     console.log(reqURL, page);
 

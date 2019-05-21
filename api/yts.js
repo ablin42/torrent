@@ -30,7 +30,7 @@ router.get('/search/:query/:page/:type/:order/:genre', async (req, res) => {
   const order = req.params.order;
   const genre = req.params.genre;
 
-  const result = await ytsSearch(query, page, genre, {type:type, order:order});
+  const result = await ytsSearch(query, page, genre.toLowerCase(), {type:type, order:order});
   res.status(200).send(result);
 })
 
@@ -94,9 +94,9 @@ function fetchUsefulData(movies) {
 
 async function ytsSearch(query, page, genre, sort) {
   const limit = 50;
-  const allowedGenre = ["Action", "Adventure","Animation","Biography","Comedy","Crime","Documentary","Drama","Family","Fantasy"
-                        ,"Film Noir","History","Horror","Music","Musical","Mystery","Romance","Sci-Fi","Short","Sport",
-                        "Superhero","Thriller","War","Western"];
+  const allowedGenre = ["action", "adventure","animation","biography","comedy","crime","documentary","drama","family","fantasy"
+                        ,"film noir","history","horror","music","musical","mystery","romance","sci-fi","short","sport",
+                        "superhero","thriller","war","western"];
   const allowedType = ["title", "year", "rating", "peers", "seeds", "download_count", "like_count", "date_added"];
   const allowedOrder = ["asc", "desc"];
 
@@ -115,7 +115,7 @@ async function ytsSearch(query, page, genre, sort) {
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       url += `&sort_by=${sort.type}&order_by=${sort.order}`;
   }
-
+  console.log(url)
   movies = await request(url);
   return fetchUsefulData(JSON.parse(movies));
 }
