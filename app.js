@@ -8,6 +8,7 @@ const torrents = require('./api/torrents');
 const leetx = require('./api/leetx');
 const yts = require('./api/yts');
 const tpb = require('./api/tpb');
+const popcorn = require('./api/popcorn');
 
 // Set Engine
 const app = express();
@@ -22,6 +23,7 @@ app.use(bodyParser.json());
 app.use('/api/torrents', torrents);
 app.use('/api/leetx', leetx);
 app.use('/api/yts', yts);
+app.use('/api/popcorn', popcorn);
 
 app.get('/tpb', async (req, res) => {
   //let torrents = await tpb.search('pirates', 0, {type: "name", order: "asc"});

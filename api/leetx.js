@@ -77,16 +77,31 @@ async function getTorrentsInfo(torrents) {
         torrent.imdb = await imdb.get({id: torrent.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
         torrent.name = torrent.imdb.title;
         torrent.rating = torrent.imdb.rating;
-        torrent.genre = torrent.imdb.genres;
+        torrent.genre = torrent.imdb.genres.split(", ");
         torrent.year = torrent.imdb.year;
-        torrent.runtime = torrent.imdb.runtime;
-        torrent.language = torrent.imdb.languages;
+        torrent.runtime = parseInt(torrent.imdb.runtime);
+        torrent.language = torrent.imdb.languages.split(", ");
         torrent.img = torrent.imdb.poster;
+        torrent.date = torrent.imdb.released.toString().substr(0, 15);
       }
       else {
         torrents[index] = null
       }
+      if (torrent.language) {
+        torrent.language.forEach((item, index) => {
+          torrent.language[index] = item.toLowerCase().substr(0, 2);
+        })
+      }
+      torrent.id = torrent.url.substr(24);
+      torrent.seeders = parseInt(torrent.seeders);
+      torrent.leechers = parseInt(torrent.leechers);
+      torrent.url = undefined;
       torrent.imdb = undefined;
+      torrent.size2 = torrent.size
+      if (torrent.size.indexOf("GB") != -1)
+        torrent.size = parseFloat(torrent.size) * 1000000000;
+      else
+        torrent.size = parseFloat(torrent.size) * 1000000;
     })
   );
   return torrents.filter(e => e);
@@ -173,42 +188,3 @@ async function searchMovie(id, name) {
 }
 
 module.exports = router;
-
-// module.exports = {
-//   // Search for a torrent page on leetx, return scraped results
-//   search: async function(query, page, sort) {
-//     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
-//     if (sort.type === "name" && sort.order === "desc"){
-//       const reqLastPage = await xray(reqURL, 'body', [{
-//         lastpage: '.pagination li.last a@href',
-//         exist: 'table.table-list tr .name'
-//       }])
-//       if (reqLastPage.length)
-//       {
-//         page = 1;
-//         if (reqLastPage[0].lastpage)
-//           page = +reqLastPage[0].lastpage.match(/\/(\d+)\/$/)[1] - page + 1;
-//       }
-//     }
-//     reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
-//     if (sort.type !== undefined && sort.type !== "name")
-//       reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
-//     console.log(reqURL, page);
-//
-//     try {
-//      let torrents = await fetchPageTorrents(reqURL);
-//      torrents = await getTorrentsInfo(torrents);
-//      return torrents
-//     } catch (error) {return Promise.reject(error);}
-//   },
-//   // Return top 100 leetx torrents
-//   topTorrents: async function() {
-//     let reqURL = `https://1337x.to/top-100-movies`;
-//
-//     try {
-//       let torrents = await fetchPageTorrents(reqURL);
-//       torrents = await getTorrentsInfo(torrents);
-//       return torrents;
-//     } catch (error) {return Promise.reject(console.error());}
-//   }
-// }

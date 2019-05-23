@@ -60,29 +60,36 @@ function fetchUsefulData(movies) {
     movies.data.movies.forEach((item, index) => {
       let obj = {
         source: "yts",
-        id: item.id,
+        id: item.id.toString(),
         imdbid: item.imdb_code,
         name: item.title_english,
         seeders: item.torrents[0].seeds,
         leechers: item.torrents[0].peers,
-        size: item.torrents[0].size,
+        size: item.torrents[0].size_bytes,
         date: item.date_uploaded,
         year: item.year,
         runtime: item.runtime,
         genre: item.genres,
-        language: item.language,
+        language: item.language.split(", "),
         img: item.large_cover_image,
         rating: item.rating
       };
+
+      if (obj.language) {
+        obj.language.forEach((item, index) => {
+          obj.language[index] = item.toLowerCase().substr(0, 2);
+        })
+      }
+
       if (!obj.img){
         obj.img = item.medium_cover_image;
       }
       if (item.torrents) {
         item.torrents.forEach((torrent, tindex) => {
           if (torrent.seeds + torrent.peers > obj.seeders + obj.leechers){
-              obj.seeders= item.torrents[tindex].seeds;
-              obj.leechers= item.torrents[tindex].peers;
-              obj.size= item.torrents[tindex].size;
+              obj.seeders = item.torrents[tindex].seeds;
+              obj.leechers = item.torrents[tindex].peers;
+              obj.size = item.torrents[tindex].size_bytes;
             }
           })
       result.push(obj);
