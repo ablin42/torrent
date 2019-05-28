@@ -26,17 +26,6 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   res.status(200).send(result);
 })
 
-// router.get('/search/:query/:page/:type/:order/:genre', async (req, res) => {
-//   const query = req.params.query;
-//   const page = req.params.page;
-//   const type = req.params.type;
-//   const order = req.params.order;
-//   const genre = req.params.genre;
-//
-//   const result = await ytsSearch(query, page, genre.toLowerCase(), {type:type, order:order});
-//   res.status(200).send(result);
-// })
-
 //fetch the top torrents
 router.get('/top', async (req, res) => {
   result = await topTorrents();
@@ -103,6 +92,8 @@ async function getTorrentsInfo(item, index) {
         }
       })
   }
+  obj.api_url = `api/yts/movie/${obj.id}`;
+
   return obj;
 }
 
@@ -116,16 +107,15 @@ async function fetchUsefulData(movies) {
       result.push(obj);
     }
   }
+
   return result;
 }
 
 //ask the yts api a list of movies with query, page, genre, and sort terms
 //ignores sort terms if they aren't part of the allowed values
-async function ytsSearch(query, page, genre, sort) {
+async function ytsSearch(query, page, sort) {
+  let url = `https://yts.am/api/v2/list_movies.json?query_term=${query}&page=${page}`;
   const limit = 50;
-  const allowedGenre = ["action", "adventure","animation","biography","comedy","crime","documentary","drama","family","fantasy"
-                        ,"film noir","history","horror","music","musical","mystery","romance","sci-fi","short","sport",
-                        "superhero","thriller","war","western"];
   const allowedType = ["title", "year", "rating", "peers", "seeds", "download_count", "like_count", "date_added"];
   const allowedOrder = ["asc", "desc"];
 
@@ -136,16 +126,13 @@ async function ytsSearch(query, page, genre, sort) {
   if (sort.type === "seeders")
     sort.type = "seeds";
 
-  let url = `https://yts.am/api/v2/list_movies.json?query_term=${query}&page=${page}`;
-  if (allowedGenre.includes(genre))
-    url += `&genre=${genre}`;
-
   if (sort) {
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       url += `&sort_by=${sort.type}&order_by=${sort.order}`;
   }
   console.log(url)
   movies = await request(url);
+
   return fetchUsefulData(JSON.parse(movies));
 }
 
@@ -186,13 +173,21 @@ async function searchMovie(id) {
     obj.date = timestamp;
   }
 
+  if (obj.imdbid != null) {
+    imdbObj = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+    obj.actors = imdbObj.actors.split(", ");
+    obj.directors = imdbObj.director.split(", ");
+  }
+
   if (obj.id === 0)
     return "There is no movie with this ID";
+    
   if (obj.torrents) {
     obj.torrents.forEach((item, index) => {
       item.magnet = constructMagnet(item.hash, obj.slug);
     })
   }
+
   return obj;
 }
 

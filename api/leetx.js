@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const request = require('request-promise');
 const Xray = require('x-ray');
 const imdb = require('imdb-api');
+const slug = require('slug');
 
 // Set Xray
 const xray = Xray();
@@ -63,7 +64,8 @@ async function fetchPageTorrents(reqURL) {
     date: '.coll-date',
     size: '.size'
   }])
-  torrents = torrents.map(e => {e.size = e.size.split('B')[0]; return e;}).filter(e => e.url)
+  torrents = torrents.map(e => {e.size = e.size.split('B')[0]; return e;}).filter(e => e.url);
+  
   return torrents;
 }
 
@@ -84,26 +86,20 @@ async function getTorrentsInfo(torrents) {
         torrent.genre = torrent.imdb.genres.split(", ");
         torrent.year = torrent.imdb.year;
         torrent.runtime = parseInt(torrent.imdb.runtime);
-        torrent.language = torrent.imdb.languages.split(", ");
+        torrent.language = torrent.imdb.languages.split(", ").map(i => i.toLowerCase().substr(0, 2));
         torrent.img = torrent.imdb.poster;
         torrent.date = torrent.imdb.released;
-      }
-      else {
+      } else {
         torrents[index] = null
       }
 
       date = new Date(torrent.date);
       timestamp = date.getTime();
       torrent.date = timestamp;
-
-      if (torrent.language) {
-        torrent.language.forEach((item, index) => {
-          torrent.language[index] = item.toLowerCase().substr(0, 2);
-        })
-      }
       torrent.id = torrent.url.substr(24);
       torrent.seeders = parseInt(torrent.seeders);
       torrent.leechers = parseInt(torrent.leechers);
+      torrent.api_url = `api/leetx/movie/${torrent.id}`;
       torrent.url = undefined;
       torrent.imdb = undefined;
       if (torrent.size.indexOf("GB") != -1)
@@ -164,9 +160,20 @@ async function searchMovie(id, name) {
     seeders: '.seeds',
     leechers: '.leeches',
     magnet: 'div.torrent-category-detail.clearfix > ul.download-links-dontblock.btn-wrap-list > li:nth-child(1) > a@href',
-    imdbid: '#description'
+    imdbid: '#description',
+    date_uploaded: 'div.torrent-category-detail.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
   }])
+
   obj = obj[0];
+  obj.seeders = parseInt(obj.seeders);
+  obj.leechers = parseInt(obj.leechers);
+  obj.language = obj.language.split(", ").map(i => i.substr(0, 2));
+  obj.id = `${id}/${name}`;
+
+  if (obj.size.indexOf("GB") != -1)
+    size_bytes = parseFloat(obj.size) * 1000000000;
+  else
+    size_bytes = parseFloat(obj.size) * 1000000;
 
   if (obj) {
     obj.imdbid = obj.imdbid.match(/(?<=\:\/\/www\.imdb\.com\/title\/)tt([0-9]+)/g);
@@ -178,19 +185,43 @@ async function searchMovie(id, name) {
       obj.imdb = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
       obj.name = obj.imdb.title;
       obj.rating = obj.imdb.rating;
-      obj.genre = obj.imdb.genres;
+      obj.genre = obj.imdb.genres.split(", ");
       obj.year = obj.imdb.year;
       obj.runtime = obj.imdb.runtime;
-      obj.language = obj.imdb.languages;
+      obj.language = obj.imdb.languages.split(", ").map(i => i.substr(0, 2));
       obj.img = obj.imdb.poster;
-      obj.plot = obj.imdb.plot;
-      obj.actors = obj.imdb.actors;
-      obj.director = obj.imdb.director;
+      obj.description = obj.imdb.plot;
+      obj.actors = obj.imdb.actors.split(", ");
+      obj.directors = obj.imdb.director.split(", ");
+      obj.date = obj.imdb.released;
     }
     else {
       return "This movie doesnt have IMDB info";
     }
+
+    obj.slug = slug(obj.name, {lower:true});
+    obj.torrents = [{
+        url: `https://1337x.to/torrent/${obj.id}`,
+        hash: obj.magnet.match(/btih:[a-zA-Z0-9]+/gm)[0].substr(5),
+        quality: "",
+        type: "",
+        seeds: obj.seeders,
+        peers: obj.leechers,
+        size: obj.size,
+        size_bytes: size_bytes,
+        date_uploaded: obj.date_uploaded,
+        date_uploaded_unix: "",
+        magnet: obj.magnet
+      }];
+    date = new Date(obj.date);
+    timestamp = date.getTime();
+    obj.date = timestamp;
+    obj.date_uploaded = undefined;
+    obj.seeders = undefined;
+    obj.leechers = undefined;
+    obj.size = undefined;
     obj.imdb = undefined;
+    obj.magnet = undefined;
   }
   return obj;
 }

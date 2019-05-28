@@ -3,6 +3,7 @@ const express = require('express');
 const request = require('request-promise');
 const bodyParser = require('body-parser');
 const imdb = require('imdb-api');
+const slug = require('slug');
 
 // Set Engine
 const router = express.Router();
@@ -23,24 +24,23 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const order = req.params.order;
 
   const result = await popcornSearch(query, page, {type:type, order:order});
+
   res.status(200).send(result);
 })
 
 //fetch each page number available
 router.get('/movies', async (req, res) => {
   const movies = await request('https://tv-v2.api-fetch.website/movies');
+
   res.status(200).send(movies);
 })
 
 //fetch a specific movie infos and its torrents using its ID
 router.get('/movie/:imdbid', async (req, res) => {
   const imdbid = req.params.imdbid;
-  let movie = await request(`https://tv-v2.api-fetch.website/movie/${imdbid}/`);
+  result = await searchMovie(imdbid);
 
-  if (!movie)
-    res.status(200).send("There is no such movie with this imdb ID");
-
-  res.status(200).send(movie);
+  res.status(200).send(result);
 })
 
 //get a specific page from movies, page number has to be available in /movies
@@ -53,9 +53,9 @@ router.get('/movies/:page', async (req, res) => {
       res.status(200).send(`Invalid page number, please enter a page number between 1 and ${maxPageNb}`);
       return ;
   }
-
   const movies = await request(`https://tv-v2.api-fetch.website/movies/${page}`);
   const result = fetchUsefulData(JSON.parse(movies));
+
   res.status(200).send(result);
 })
 
@@ -68,10 +68,124 @@ router.get('/top', async (req, res) => {
 
 //fetch a random movie infos and its torrents
 router.get('/random', async (req, res) => {
-  const movie = await request('https://tv-v2.api-fetch.website/random/movie');
+  const movie = await randomMovie();
 
   res.status(200).send(movie);
 })
+
+//fetch a specific movie infos and its torrents using its ID
+async function searchMovie(imdbid) {
+  let url = `https://tv-v2.api-fetch.website/movie/${imdbid}/`;
+  console.log(url);
+  result = await request(url);
+  if (!result)
+    return "There is no such movie with this imdb ID";
+  parsed = JSON.parse(result);
+
+  let obj = {
+    source: "popcorn",
+    id: parsed._id,
+    imdbid: parsed.imdb_id,
+    name: parsed.title,
+    slug: slug(parsed.title, {lower:true}),
+    date: parsed.released,
+    year: parseInt(parsed.year),
+    runtime: parseInt(parsed.runtime),
+    genre: parsed.genres,
+    language: [],
+    img: parsed.images.poster,
+    rating: parsed.rating.percentage / 10,
+    torrents: parsed.torrents,
+    description: parsed.synopsis,
+  };
+
+  newTorrents = [];
+  for (key in obj.torrents) {
+    obj.language.push(key);
+    for (torrent in obj.torrents[key]) {
+      info = obj.torrents[key][torrent];
+      let newObj = {
+            url: info.url,
+            hash: info.url.match(/btih:[a-zA-Z0-9]+/gm)[0].substr(5),
+            quality: torrent,
+            type: "",
+            seeds: info.seed,
+            peers: info.peer,
+            size: info.filesize,
+            size_bytes: info.size,
+            date_uploaded: "",
+            date_uploaded_unix: "",
+            magnet: info.url
+          };
+          newTorrents.push(newObj);
+    }
+  }
+  obj.torrents = newTorrents;
+
+  if (obj.imdbid != null) {
+    imdbObj = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+    obj.actors = imdbObj.actors.split(", ");
+    obj.directors = imdbObj.director.split(", ");
+  }
+
+  return obj;
+}
+
+// fetch a random movie and its torrents
+async function randomMovie() {
+  let url = `https://tv-v2.api-fetch.website/random/movie`;
+  console.log(url);
+  result = await request(url);
+  parsed = JSON.parse(result);
+
+  let obj = {
+    source: "popcorn",
+    id: parsed._id,
+    imdbid: parsed.imdb_id,
+    name: parsed.title,
+    slug: slug(parsed.title, {lower:true}),
+    date: parsed.released,
+    year: parseInt(parsed.year),
+    runtime: parseInt(parsed.runtime),
+    genre: parsed.genres,
+    language: [],
+    img: parsed.images.poster,
+    rating: parsed.rating.percentage / 10,
+    torrents: parsed.torrents,
+    description: parsed.synopsis,
+  };
+
+  newTorrents = [];
+  for (key in obj.torrents) {
+    obj.language.push(key);
+    for (torrent in obj.torrents[key]) {
+      info = obj.torrents[key][torrent];
+      let newObj = {
+            url: info.url,
+            hash: info.url.match(/btih:[a-zA-Z0-9]+/gm)[0].substr(5),
+            quality: torrent,
+            type: "",
+            seeds: info.seed,
+            peers: info.peer,
+            size: info.filesize,
+            size_bytes: info.size,
+            date_uploaded: "",
+            date_uploaded_unix: "",
+            magnet: info.url
+          };
+          newTorrents.push(newObj);
+    }
+  }
+  obj.torrents = newTorrents;
+
+  if (obj.imdbid != null) {
+    imdbObj = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
+    obj.actors = imdbObj.actors.split(", ");
+    obj.directors = imdbObj.director.split(", ");
+  }
+
+  return obj;
+}
 
 // fetch the data that will be needed to display properly the movie on the site
 function fetchUsefulData(movies) {
@@ -103,8 +217,10 @@ function fetchUsefulData(movies) {
           }
       }
     }
+    obj.api_url = `api/popcorn/movie/${obj.id}`;
     result.push(obj);
   }
+
   return result;
 }
 
@@ -123,9 +239,9 @@ async function popcornSearch(query, page, sort) {
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       url += `&sort=${sort.type}&order=${order}`;
   }
-
   console.log(url)
   movies = await request(url);
+  
   return fetchUsefulData(JSON.parse(movies));
 }
 

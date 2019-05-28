@@ -13,6 +13,7 @@
     "express": "^4.16.4",
     "imdb-api": "^4.0.2",
     "request-promise": "^4.2.4",
+    "slug": "^1.1.0",
     "x-ray": "^2.3.3",
     "x-ray-scraper": "^3.0.5",
     "yggtorrent": "^1.1.7"
