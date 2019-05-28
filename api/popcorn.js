@@ -13,6 +13,9 @@ router.use(bodyParser.urlencoded({extended: false}));
 // Parse app/json
 router.use(bodyParser.json());
 
+///// POPCORN TIME API /////
+
+// fetch torrents from popcorntime with /:query/:page/:type/:order
 router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const query = req.params.query;
   const page = req.params.page;
@@ -23,11 +26,24 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   res.status(200).send(result);
 })
 
+//fetch each page number available
 router.get('/movies', async (req, res) => {
   const movies = await request('https://tv-v2.api-fetch.website/movies');
   res.status(200).send(movies);
 })
 
+//fetch a specific movie infos and its torrents using its ID
+router.get('/movie/:imdbid', async (req, res) => {
+  const imdbid = req.params.imdbid;
+  let movie = await request(`https://tv-v2.api-fetch.website/movie/${imdbid}/`);
+
+  if (!movie)
+    res.status(200).send("There is no such movie with this imdb ID");
+
+  res.status(200).send(movie);
+})
+
+//get a specific page from movies, page number has to be available in /movies
 router.get('/movies/:page', async (req, res) => {
   const page = req.params.page;
   let maxPage = await request('https://tv-v2.api-fetch.website/movies');
@@ -39,67 +55,63 @@ router.get('/movies/:page', async (req, res) => {
   }
 
   const movies = await request(`https://tv-v2.api-fetch.website/movies/${page}`);
-  res.status(200).send(movies);
+  const result = fetchUsefulData(JSON.parse(movies));
+  res.status(200).send(result);
 })
 
+//fetch the top torrents
 router.get('/top', async (req, res) => {
   result = await topTorrents();
 
   res.status(200).send(result);
 })
 
-router.get('/movie/:imdbid', async (req, res) => {
-  const imdbid = req.params.imdbid;
-  let movie = await request(`https://tv-v2.api-fetch.website/movie/${imdbid}/`);
+//fetch a random movie infos and its torrents
+router.get('/random', async (req, res) => {
+  const movie = await request('https://tv-v2.api-fetch.website/random/movie');
 
-  if (!movie)
-    movie = "There is no such movie with this imdb ID";
   res.status(200).send(movie);
 })
 
-router.get('/random', async (req, res) => {
-  const movies = await request('https://tv-v2.api-fetch.website/random/movie');
-  res.status(200).send(movies);
-})
-
+// fetch the data that will be needed to display properly the movie on the site
 function fetchUsefulData(movies) {
   let result = [];
-  if (movies) {
-    movies.forEach((item, index) => {
-      let obj = {
-        source: "popcorn",
-        id: item._id,
-        imdbid: item.imdb_id,
-        name: item.title,
-        seeders: 0,
-        leechers: 0,
-        size: 0,
-        date: item.released,
-        year: parseInt(item.year),
-        runtime: parseInt(item.runtime),
-        genre: item.genres,
-        language: Object.keys(item.torrents),
-        img: item.images.poster,
-        rating: (item.rating.percentage / 10)
-      };
+  for (i = 0; i < movies.length; i++) {
+    let obj = {
+      source: "popcorn",
+      id: movies[i]._id,
+      imdbid: movies[i].imdb_id,
+      name: movies[i].title,
+      seeders: 0,
+      leechers: 0,
+      size: 0,
+      date: movies[i].released,
+      year: parseInt(movies[i].year),
+      runtime: parseInt(movies[i].runtime),
+      genre: movies[i].genres,
+      language: Object.keys(movies[i].torrents),
+      img: movies[i].images.poster,
+      rating: (movies[i].rating.percentage / 10)
+    };
 
-      for (language in item.torrents) {
-        for (quality in item.torrents[language]) {
-          if (item.torrents[language][quality].seed + item.torrents[language][quality].peer > obj.seeders + obj.leechers){
-                 obj.seeders = item.torrents[language][quality].seed;
-                 obj.leechers = item.torrents[language][quality].peer;
-                 obj.size = item.torrents[language][quality].size;
-            }
-        }
+    for (language in movies[i].torrents) {
+      for (quality in movies[i].torrents[language]) {
+        if (movies[i].torrents[language][quality].seed + movies[i].torrents[language][quality].peer > obj.seeders + obj.leechers){
+               obj.seeders = movies[i].torrents[language][quality].seed;
+               obj.leechers = movies[i].torrents[language][quality].peer;
+               obj.size = movies[i].torrents[language][quality].size;
+          }
       }
-      result.push(obj);
-    })
+    }
+    result.push(obj);
   }
   return result;
 }
 
+//ask the popcorntime api a list of movies with query, page, and sort terms
+//ignores sort terms if they aren't part of the allowed values
 async function popcornSearch(query, page, sort) {
-  const allowedType = ["name", "rating", "released", "trending", "updated", "year"];
+  const allowedType = ["title", "rating", "last added", "trending", "year"];
   const allowedOrder = ["asc", "desc"];
 
   let order = 1;
@@ -117,8 +129,12 @@ async function popcornSearch(query, page, sort) {
   return fetchUsefulData(JSON.parse(movies));
 }
 
+//fetch the top torrents from popcorntime, sorted by trending
 async function topTorrents() {
-  
+  let url = `https://tv-v2.api-fetch.website/movies/1?genre=all&keywords=*&sort=trending&order=-1`;
+  result = await request(url);
+
+  return fetchUsefulData(JSON.parse(result));
 }
 
 module.exports = router;

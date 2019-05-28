@@ -17,7 +17,9 @@ router.use(bodyParser.urlencoded({extended: false}));
 // Parse app/json
 router.use(bodyParser.json());
 
+///// LEETX API /////
 
+// fetch torrents  with /:query/:page/:type/:order
 router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const query = req.params.query;
   const page = req.params.page;
@@ -28,12 +30,14 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   res.status(200).send(result);
 })
 
+//fetch the top torrents
 router.get('/top', async (req, res) => {
   result = await topTorrents();
 
   res.status(200).send(result);
 })
 
+//fetch a specific movie infos and its torrents using its ID
 router.get('/movie/:id/:name', async (req, res) => {
   const id = req.params.id;
   const name = req.params.name;
@@ -63,7 +67,7 @@ async function fetchPageTorrents(reqURL) {
   return torrents;
 }
 
-// Get page info for each torrent in the array
+// Get page info used for displaying torrents for each torrent in the array
 async function getTorrentsInfo(torrents) {
   await Promise.all(
     torrents.map(async (torrent, index, tab) => {
@@ -82,11 +86,16 @@ async function getTorrentsInfo(torrents) {
         torrent.runtime = parseInt(torrent.imdb.runtime);
         torrent.language = torrent.imdb.languages.split(", ");
         torrent.img = torrent.imdb.poster;
-        torrent.date = torrent.imdb.released.toString().substr(0, 15);
+        torrent.date = torrent.imdb.released;
       }
       else {
         torrents[index] = null
       }
+
+      date = new Date(torrent.date);
+      timestamp = date.getTime();
+      torrent.date = timestamp;
+
       if (torrent.language) {
         torrent.language.forEach((item, index) => {
           torrent.language[index] = item.toLowerCase().substr(0, 2);
@@ -97,7 +106,6 @@ async function getTorrentsInfo(torrents) {
       torrent.leechers = parseInt(torrent.leechers);
       torrent.url = undefined;
       torrent.imdb = undefined;
-      torrent.size2 = torrent.size
       if (torrent.size.indexOf("GB") != -1)
         torrent.size = parseFloat(torrent.size) * 1000000000;
       else
