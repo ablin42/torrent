@@ -286,6 +286,7 @@ async function popcornSearch(query, page, sort) {
 
 //fetch the top torrents from popcorntime, sorted by trending
 async function topTorrents() {
+  console.log("popcorn: trending sort");
   let url = `https://tv-v2.api-fetch.website/movies/1?genre=all&keywords=*&sort=trending&order=-1`;
   let result = await request(url);
   result = await fetchUsefulData(JSON.parse(result));

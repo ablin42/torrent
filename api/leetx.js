@@ -124,7 +124,7 @@ async function leetxSearch(query, page, sort) {
     const allowedOrder = ["asc", "desc"];
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
 
-    if (sort.type === "name" && sort.order === "desc"){
+    if (sort.type === "title" && sort.order === "desc"){
       const reqLastPage = await xray(reqURL, 'body', [{
         lastpage: '.pagination li.last a@href',
         exist: 'table.table-list tr .name'
@@ -155,6 +155,7 @@ async function leetxSearch(query, page, sort) {
 
 // Return top 100 leetx torrents
 async function topTorrents() {
+  console.log("leetx: download_count sort");
     let reqURL = `https://1337x.to/top-100-movies`;
 
     let torrents = await fetchPageTorrents(reqURL);

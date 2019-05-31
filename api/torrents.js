@@ -3,8 +3,8 @@ const express = require('express');
 const request = require('request-promise');
 
 // Load Own Modules
-const leetx = require('./leetx')
-const tpb = require('./tpb')
+// const leetx = require('./leetx')
+// const tpb = require('./tpb')
 
 // Set Engine
 const router = express.Router();
@@ -17,15 +17,24 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
         page  = req.params.page,
         type  = req.params.type,
         order = req.params.order;
+  let result = await searchTorrents(query, page, type, order);
+  let status = 200;
 
-  result = await searchTorrents(query, page, type, order);
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 // Fetch top 100 torrents from tpb and leetx and return the result sorted by seeders
 router.get('/top', async (req, res) => {
-  result = await topTorrents();
-  res.status(200).send(result);
+  let result = await topTorrents();
+  let status = 200;
+
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //function toptorrents and search
@@ -34,40 +43,60 @@ async function topTorrents () {
       ytsTop = await request({"uri":`${BaseUrl}/yts/top`, "json": true}),
       popcornTop = await request({"uri":`${BaseUrl}/popcorn/top`, "json": true});
 
-  sortedResult = [...ytsTop, ...leetxTop, ...popcornTop];
-  console.log(sortedResult.length)
+  if (leetxTop.status && (ytsTop.status == undefined || popcornTop.status == undefined))
+    leetxTop = [];
+  if (ytsTop.status && (leetxTop.status == undefined || popcornTop.status == undefined))
+    ytsTop = [];
+  if (popcornTop.status && (ytsTop.status == undefined || leetxTop.status == undefined))
+    popcornTop = [];
+  if (popcornTop.status && ytsTop.status && leetxTop.status)
+    return result = {status: 200, error: "No content found."};
+
+  joinedTop = [...popcornTop, ...ytsTop, ...leetxTop];
+  sortedResult = removeExtra(joinedTop);
+
   //sortedResult = [...leetxTop, ...tpbTop].sort(function(a, b){return b.seeders - a.seeders});
   if (sortedResult.length === 0)
     return {status: 200, error: "No content found."};
-  return removeExtra(sortedResult);
+  return sortedResult;
 }
 
 async function searchTorrents(query, page, type, order) {
-  const allowedType = ["name", "size", "seeders", "leechers", "rating"];
+  const allowedType = ["title", "size", "seeders", "leechers", "rating"];
   const allowedOrder = ["asc", "desc"];
 
   if (+page < 0)
-    return "Invalid page number";
+    return {status: 200, error: "No content found."};
   if (allowedType.includes(type) && allowedOrder.includes(order)){
     let leetxTorrents = await request({"uri":`${BaseUrl}/leetx/search/${query}/${+page}/${type}/${order}`, "json": true});
-    let ytsTorrents = await request({"uri":`${BaseUrl}/yts/search/${query}/${+page}/${type}/${order}`, "json": true});
+    let ytsTorrents = await request({"uri":`${BaseUrl}/yts/search/${query}/${page}/${type}/${order}`, "json": true});
+    let popcornTorrents = await request({"uri":`${BaseUrl}/popcorn/search/${query}/${page}/${type}/${order}`, "json": true});
 
-  //  let leetxTorrents = leetx.search(query, +page + 1, sort);//
-  //  let tpbTorrents = tpb.search(query, +page, sort);//
+    if (leetxTorrents.status && (ytsTorrents.status == undefined || popcornTorrents.status == undefined))
+      leetxTorrents = [];
+    if (ytsTorrents.status && (leetxTorrents.status == undefined || popcornTorrents.status == undefined))
+      ytsTorrents = [];
+    if (popcornTorrents.status && (ytsTorrents.status == undefined || leetxTorrents.status == undefined))
+      popcornTorrents = [];
+    if (popcornTorrents.status && ytsTorrents.status && leetxTorrents.status)
+      return result = {status: 200, error: "No content found."};
+
     // let sortType = "";
     // if (order === "desc")
     //   sortType += "-";
     // sortType += type;
 
-    sortedResult = [...ytsTorrents, ...leetxTorrents];
+    sortedResult = [...popcornTorrents, ...ytsTorrents, ...leetxTorrents];
+    console.log(sortedResult.length)
+    sortedResult = removeExtra(sortedResult);
     console.log(sortedResult.length)
 
     //sortedResult = [...leetxTorrents, ...ytsTorrents];//.sort(dynamicSort(sortType));
     if (sortedResult.length === 0)
-      return "No content found";
-    return removeExtra(sortedResult);
+      return {status: 200, error: "No content found."};
+    return sortedResult;
   }
-  return "Wrong parameters.";
+  return {status: 200, error: "Wrong Parameters"};
 }
 
 function removeExtra(torrents) {
@@ -79,7 +108,6 @@ function removeExtra(torrents) {
       imdbFetched.push(item.imdbid);
     }
   })
-  console.log(result.length);
   return result;
 }
 //
