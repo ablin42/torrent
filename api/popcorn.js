@@ -22,25 +22,32 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const page = req.params.page;
   const type = req.params.type;
   const order = req.params.order;
-
   const result = await popcornSearch(query, page, {type:type, order:order});
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //fetch each page number available
 router.get('/movies', async (req, res) => {
-  const movies = await request('https://tv-v2.api-fetch.website/movies');
+  const result = await request('https://tv-v2.api-fetch.website/movies');
 
-  res.status(200).send(movies);
+  res.status(200).send(result);
 })
 
 //fetch a specific movie infos and its torrents using its ID
 router.get('/movie/:imdbid', async (req, res) => {
   const imdbid = req.params.imdbid;
-  result = await searchMovie(imdbid);
+  let result = await searchMovie(imdbid);
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //get a specific page from movies, page number has to be available in /movies
@@ -50,27 +57,40 @@ router.get('/movies/:page', async (req, res) => {
 
   if (!maxPage.includes(`movies/${page}`)){
       maxPageNb = maxPage.substr((maxPage.length - 5), 3);
-      res.status(200).send(`Invalid page number, please enter a page number between 1 and ${maxPageNb}`);
+      res.status(200).send({status: "200", error: `Invalid page number, please enter a page number between 1 and ${maxPageNb}`});
       return ;
   }
   const movies = await request(`https://tv-v2.api-fetch.website/movies/${page}`);
   const result = fetchUsefulData(JSON.parse(movies));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
 
   res.status(200).send(result);
 })
 
 //fetch the top torrents
 router.get('/top', async (req, res) => {
-  result = await topTorrents();
+  let result = await topTorrents();
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //fetch a random movie infos and its torrents
 router.get('/random', async (req, res) => {
-  const movie = await randomMovie();
+  const result = await randomMovie();
+  let status = 200;
 
-  res.status(200).send(movie);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //fetch a specific movie infos and its torrents using its ID
@@ -79,7 +99,9 @@ async function searchMovie(imdbid) {
   console.log(url);
   result = await request(url);
   if (!result)
-    return "There is no such movie with this imdb ID";
+    return {
+      status: 200,
+      error: "No content found."}
   parsed = JSON.parse(result);
 
   let obj = {
@@ -98,6 +120,11 @@ async function searchMovie(imdbid) {
     torrents: parsed.torrents,
     description: parsed.synopsis,
   };
+
+  if (obj.id === 0 || obj.imdbid == undefined)
+    return {
+      status: 200,
+      error: "No content found."}
 
   newTorrents = [];
   for (key in obj.torrents) {
@@ -154,6 +181,11 @@ async function randomMovie() {
     torrents: parsed.torrents,
     description: parsed.synopsis,
   };
+
+  if (obj.id === 0 || obj.imdbid == undefined)
+    return {
+      status: 200,
+      error: "No content found."}
 
   newTorrents = [];
   for (key in obj.torrents) {
@@ -218,7 +250,8 @@ function fetchUsefulData(movies) {
       }
     }
     obj.api_url = `api/popcorn/movie/${obj.id}`;
-    result.push(obj);
+    if (obj.id && obj.imdbid)
+      result.push(obj);
   }
 
   return result;
@@ -240,17 +273,33 @@ async function popcornSearch(query, page, sort) {
       url += `&sort=${sort.type}&order=${order}`;
   }
   console.log(url)
-  movies = await request(url);
-  
-  return fetchUsefulData(JSON.parse(movies));
+  let movies = await request(url);
+  let result = fetchUsefulData(JSON.parse(movies));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
+
+  return result;
 }
 
 //fetch the top torrents from popcorntime, sorted by trending
 async function topTorrents() {
   let url = `https://tv-v2.api-fetch.website/movies/1?genre=all&keywords=*&sort=trending&order=-1`;
-  result = await request(url);
+  let result = await request(url);
+  result = await fetchUsefulData(JSON.parse(result));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
 
-  return fetchUsefulData(JSON.parse(result));
+  return result;
 }
+
+router.get('*', function(req, res){
+  res.status(404).send({status: 404, error: "404 Page Not Found."});
+});
 
 module.exports = router;

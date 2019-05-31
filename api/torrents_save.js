@@ -31,14 +31,13 @@ router.get('/top', async (req, res) => {
 //function toptorrents and search
 async function topTorrents () {
   let leetxTop = await request({"uri":`${BaseUrl}/leetx/top`, "json": true}),
-      ytsTop = await request({"uri":`${BaseUrl}/yts/top`, "json": true}),
-      popcornTop = await request({"uri":`${BaseUrl}/popcorn/top`, "json": true});
+      ytsTop = await request({"uri":`${BaseUrl}/yts/top`, "json": true});
 
-  sortedResult = [...ytsTop, ...leetxTop, ...popcornTop];
+  sortedResult = [...ytsTop, ...leetxTop];
   console.log(sortedResult.length)
   //sortedResult = [...leetxTop, ...tpbTop].sort(function(a, b){return b.seeders - a.seeders});
   if (sortedResult.length === 0)
-    return {status: 200, error: "No content found."};
+    return "No content found, please try again later.";
   return removeExtra(sortedResult);
 }
 
@@ -107,10 +106,5 @@ function removeExtra(torrents) {
 // 	else if (a.name == b.name) return 0;
 // 	else return 1;
 // }
-
-router.get('*', function(req, res){
-  res.status(404).send({status: 404, error: "404 Page Not Found."});
-});
-
 
 module.exports = router;

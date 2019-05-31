@@ -21,32 +21,47 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const page = req.params.page;
   const type = req.params.type;
   const order = req.params.order;
-
   const result = await ytsSearch(query, page, "", {type:type, order:order});
-  res.status(200).send(result);
+  let status = 200;
+
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //fetch the top torrents
 router.get('/top', async (req, res) => {
   result = await topTorrents();
+  status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+  res.status(status).send(result);
 })
 
 //fetch a specific movie infos and its torrents using its ID
 router.get('/movie/:id', async (req, res) => {
   const id = req.params.id;
-  result = await searchMovie(id);
+  let result = await searchMovie(id);
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //suggest 4 movies similar to the movie with the ID being passed
 router.get('/suggest/:id', async (req, res) => {
   const id = req.params.id;
-  result = await suggestMovie(id);
+  let result = await suggestMovie(id);
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 // fetch the data that will be needed to display properly the movie on the site for one object and returns it
@@ -101,12 +116,12 @@ async function getTorrentsInfo(item, index) {
 async function fetchUsefulData(movies) {
   let result = [];
 
-  if (movies.data.movies) {
+  if (movies.data && movies.data.movies) {
     for (i = 0; i < movies.data.movies.length; i++){
       obj = await getTorrentsInfo(movies.data.movies[i], i);
-      result.push(obj);
-    }
-  }
+      if (obj.imdbid)
+        result.push(obj);
+    }}
 
   return result;
 }
@@ -132,8 +147,14 @@ async function ytsSearch(query, page, sort) {
   }
   console.log(url)
   movies = await request(url);
+  result = await fetchUsefulData(JSON.parse(movies));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
 
-  return fetchUsefulData(JSON.parse(movies));
+  return result;
 }
 
 //fetch a specific movie infos and its torrents using its ID
@@ -161,6 +182,10 @@ async function searchMovie(id) {
     torrents: parsed.data.movie.torrents,
     description: parsed.data.movie.description_full,
   };
+  if (obj.id === 0 || obj.imdbid == undefined)
+    return {
+      status: 200,
+      error: "No content found."}
 
   if (obj.imdbid != null) {
     let options = {
@@ -171,17 +196,10 @@ async function searchMovie(id) {
     date = new Date(imdbObj.Released);
     timestamp = date.getTime();
     obj.date = timestamp;
+    obj.actors = imdbObj.Actors.split(", ");
+    obj.directors = imdbObj.Director.split(", ");
   }
 
-  if (obj.imdbid != null) {
-    imdbObj = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
-    obj.actors = imdbObj.actors.split(", ");
-    obj.directors = imdbObj.director.split(", ");
-  }
-
-  if (obj.id === 0)
-    return "There is no movie with this ID";
-    
   if (obj.torrents) {
     obj.torrents.forEach((item, index) => {
       item.magnet = constructMagnet(item.hash, obj.slug);
@@ -194,26 +212,38 @@ async function searchMovie(id) {
 //fetch the top torrents from popcorntime, sorted by download_count
 async function topTorrents() {
   let url = "https://yts.am/api/v2/list_movies.json?limit=50&page=1&sort_by=download_count&order_by=desc";
-  result = await request(url);
+  let result = await request(url);
+  result = await fetchUsefulData(JSON.parse(result));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
 
-  return fetchUsefulData(JSON.parse(result));
+  return result;
 }
 
 //suggest 4 movies similar to the movie with the ID being passed, returns infos to display them
 async function suggestMovie(id) {
-  movieInfo = await searchMovie(id);
-  if (typeof movieInfo !== 'object') {
-    return movieInfo;
-  }
   let url = `https://yts.am/api/v2/movie_suggestions.json?movie_id=${id}`;
-  result = await request(url);
+  let result = await request(url);
+  result = await fetchUsefulData(JSON.parse(result));
+  if (result.length == 0) {
+    result = {
+      status: 200,
+      error: "No content found."
+  }}
 
-  return fetchUsefulData(JSON.parse(result));
+  return result;
 }
 
 //construct the yts magnet using torrent hash and movie name
 function constructMagnet(torrent_hash, movie_name) {
   return `magnet:?xt=urn:btih:${torrent_hash}&dn=${movie_name}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://glotorrents.pw:6969/announce`;
 }
+
+router.get('*', function(req, res){
+  res.status(404).send({status: 404, error: "404 Page Not Found."});
+});
 
 module.exports = router;

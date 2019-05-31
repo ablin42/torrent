@@ -26,29 +26,36 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const page = req.params.page;
   const type = req.params.type;
   const order = req.params.order;
-
   const result = await leetxSearch(query, page, {type:type, order:order});
-  res.status(200).send(result);
+  let status = 200;
+
+  if (result.status != undefined)
+    status = result.status;
+  res.status(status).send(result);
 })
 
 //fetch the top torrents
 router.get('/top', async (req, res) => {
-  result = await topTorrents();
+  let result = await topTorrents();
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
 })
 
 //fetch a specific movie infos and its torrents using its ID
 router.get('/movie/:id/:name', async (req, res) => {
   const id = req.params.id;
   const name = req.params.name;
-  result = await searchMovie(id, name);
-  if (result)
-    result.source = "leetx";
-  else
-    result = "Wrong combination of ID and name";
+  let result = await searchMovie(id, name);
+  let status = 200;
 
-  res.status(200).send(result);
+  if (result.status != undefined)
+    status = result.status
+
+  res.status(status).send(result);
 })
 
 // 1337x.to base URL
@@ -65,7 +72,7 @@ async function fetchPageTorrents(reqURL) {
     size: '.size'
   }])
   torrents = torrents.map(e => {e.size = e.size.split('B')[0]; return e;}).filter(e => e.url);
-  
+
   return torrents;
 }
 
@@ -116,39 +123,51 @@ async function leetxSearch(query, page, sort) {
     const allowedType = ["time", "size", "seeders", "leechers"];
     const allowedOrder = ["asc", "desc"];
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
+
     if (sort.type === "name" && sort.order === "desc"){
       const reqLastPage = await xray(reqURL, 'body', [{
         lastpage: '.pagination li.last a@href',
         exist: 'table.table-list tr .name'
       }])
-      if (reqLastPage.length)
-      {
+      if (reqLastPage.length){
         page = 1;
         if (reqLastPage[0].lastpage)
           page = +reqLastPage[0].lastpage.match(/\/(\d+)\/$/)[1] - page + 1;
       }
     }
+
     reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
     console.log(reqURL, page);
 
-    try {
-     let torrents = await fetchPageTorrents(reqURL);
-     torrents = await getTorrentsInfo(torrents);
-     return torrents
-    } catch (error) {return Promise.reject(error);}
+    let torrents = await fetchPageTorrents(reqURL);
+    if (torrents.length != 0)
+        torrents = await getTorrentsInfo(torrents);
+    if (torrents.length == 0) {
+      torrents = {
+        status: 200,
+        error: "No content found."
+      }}
+
+    return torrents
 }
 
 // Return top 100 leetx torrents
 async function topTorrents() {
     let reqURL = `https://1337x.to/top-100-movies`;
 
-    try {
-      let torrents = await fetchPageTorrents(reqURL);
-      torrents = await getTorrentsInfo(torrents);
-      return torrents;
-    } catch (error) {return Promise.reject(console.error());}
+    let torrents = await fetchPageTorrents(reqURL);
+    if (torrents.length != 0)
+        torrents = await getTorrentsInfo(torrents);
+
+    if (torrents.length == 0) {
+      torrents = {
+        status: 200,
+        error: "No content found."
+      }}
+
+    return torrents;
 }
 
 // Search a specific movie info
@@ -163,6 +182,13 @@ async function searchMovie(id, name) {
     imdbid: '#description',
     date_uploaded: 'div.torrent-category-detail.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
   }])
+  if (obj.length == 0) {
+    obj = {
+      status: 200,
+      error: "No content found."
+    }
+    return obj;
+  }
 
   obj = obj[0];
   obj.seeders = parseInt(obj.seeders);
@@ -196,7 +222,10 @@ async function searchMovie(id, name) {
       obj.date = obj.imdb.released;
     }
     else {
-      return "This movie doesnt have IMDB info";
+      return {
+          status: 200,
+          error: "No content found."
+        }
     }
 
     obj.slug = slug(obj.name, {lower:true});
@@ -222,8 +251,13 @@ async function searchMovie(id, name) {
     obj.size = undefined;
     obj.imdb = undefined;
     obj.magnet = undefined;
+    obj.source = "leetx";
   }
   return obj;
 }
+
+router.get('*', function(req, res){
+  res.status(404).send({status: 404, error: "404 Page Not Found."});
+});
 
 module.exports = router;
