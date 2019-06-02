@@ -124,6 +124,8 @@ async function leetxSearch(query, page, sort) {
     const allowedOrder = ["asc", "desc"];
     let reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
 
+    if (page == 0)
+      page = 1;
     if (sort.type === "title" && sort.order === "desc"){
       const reqLastPage = await xray(reqURL, 'body', [{
         lastpage: '.pagination li.last a@href',
@@ -135,12 +137,15 @@ async function leetxSearch(query, page, sort) {
           page = +reqLastPage[0].lastpage.match(/\/(\d+)\/$/)[1] - page + 1;
       }
     }
-
+    else if (sort.type === "year")
+      sort.type = "time"
+    else if (sort.type === "rating")
+      sort.type = "seeders";
     reqURL = `${leetxURL}/category-search/${query}/Movies/${page}/`;
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
       reqURL = `${leetxURL}/sort-category-search/${query}/Movies/${sort.type}/${sort.order}/${page}/`;
-    console.log(reqURL, page);
 
+    console.log(reqURL, page);
     let torrents = await fetchPageTorrents(reqURL);
     if (torrents.length != 0)
         torrents = await getTorrentsInfo(torrents);

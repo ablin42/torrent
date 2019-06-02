@@ -62,11 +62,13 @@ async function topTorrents () {
 }
 
 async function searchTorrents(query, page, type, order) {
-  const allowedType = ["title", "size", "seeders", "leechers", "rating"];
+  const allowedType = ["title", "year", "seeders", "leechers", "rating"];
   const allowedOrder = ["asc", "desc"];
 
-  if (+page < 0)
+  if (page < 0)
     return {status: 200, error: "No content found."};
+  else if (page == 0)
+    page = 1;
   if (allowedType.includes(type) && allowedOrder.includes(order)){
     let leetxTorrents = await request({"uri":`${BaseUrl}/leetx/search/${query}/${+page}/${type}/${order}`, "json": true});
     let ytsTorrents = await request({"uri":`${BaseUrl}/yts/search/${query}/${page}/${type}/${order}`, "json": true});
@@ -81,17 +83,17 @@ async function searchTorrents(query, page, type, order) {
     if (popcornTorrents.status && ytsTorrents.status && leetxTorrents.status)
       return result = {status: 200, error: "No content found."};
 
-    // let sortType = "";
-    // if (order === "desc")
-    //   sortType += "-";
-    // sortType += type;
+    let sortType = "";
+    if (order === "desc")
+      sortType += "-";
+    sortType += type;
 
     sortedResult = [...popcornTorrents, ...ytsTorrents, ...leetxTorrents];
-    console.log(sortedResult.length)
+    console.log(`Before removing same extra movies: ${sortedResult.length}`)
     sortedResult = removeExtra(sortedResult);
-    console.log(sortedResult.length)
+    console.log(`After removing same extra movies: ${sortedResult.length}`)
 
-    //sortedResult = [...leetxTorrents, ...ytsTorrents];//.sort(dynamicSort(sortType));
+    sortedResult = sortedResult.sort(dynamicSort(sortType));
     if (sortedResult.length === 0)
       return {status: 200, error: "No content found."};
     return sortedResult;
@@ -110,35 +112,21 @@ function removeExtra(torrents) {
   })
   return result;
 }
-//
-// function dynamicSort(property) {
-//     var sortOrder = -1;
-//     if(property[0] === "-") {
-//         sortOrder = -1;
-//         property = property.substr(1);
-//     }
-//     return function (a,b) {
-//         let  result = a[property] - b[property]
-//         return result * sortOrder;
-//     }
-// }
-//
-// function typeSort(a, b, type){
-//   if (a[type] < b[type]) return -1;
-// 	else if (a[type] == b[type]) return 0;
-// 	else return 1;
-// }
-//
-// // Sort by name, ascending
-// function nameSort(a, b){
-//   if (a.name < b.name) return -1;
-// 	else if (a.name == b.name) return 0;
-// 	else return 1;
-// }
+
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a,b) {
+        let  result = a[property] - b[property]
+        return result * sortOrder;
+    }
+}
 
 router.get('*', function(req, res){
   res.status(404).send({status: 404, error: "404 Page Not Found."});
 });
-
 
 module.exports = router;

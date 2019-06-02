@@ -263,10 +263,15 @@ async function popcornSearch(query, page, sort) {
   const allowedType = ["title", "rating", "last added", "trending", "year"];
   const allowedOrder = ["asc", "desc"];
 
+  if (page == 0)
+    page = 1;
   let order = 1;
   if (sort.order === "desc")
     order = -1;
   let url = `https://tv-v2.api-fetch.website/movies/${page}?genre=all&keywords=${query}`;
+
+  if (sort.type === "seeders" || sort.type === "leechers")
+    sort.type = "trending";
 
   if (sort) {
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))

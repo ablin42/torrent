@@ -21,7 +21,7 @@ router.get('/search/:query/:page/:type/:order', async (req, res) => {
   const page = req.params.page;
   const type = req.params.type;
   const order = req.params.order;
-  const result = await ytsSearch(query, page, "", {type:type, order:order});
+  const result = await ytsSearch(query, page, {type:type, order:order});
   let status = 200;
 
   if (result.status != undefined)
@@ -134,12 +134,19 @@ async function ytsSearch(query, page, sort) {
   const allowedType = ["title", "year", "rating", "peers", "seeds", "download_count", "like_count", "date_added"];
   const allowedOrder = ["asc", "desc"];
 
+  if (page == 0)
+    page = 1;
   if (sort.type === "name")
     sort.type = "title";
   if (sort.type === "leechers")
     sort.type = "peers";
   if (sort.type === "seeders")
     sort.type = "seeds";
+
+  // WHILE YTS API IS FIXED (seeds/peers sorting not working)
+  if (sort.type === "peers" || sort.type === "seeds")
+    sort.type = "download_count"
+  ///////////////////////////////////////////////////////////
 
   if (sort) {
     if (allowedType.includes(sort.type) && allowedOrder.includes(sort.order))
