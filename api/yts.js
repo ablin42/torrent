@@ -218,7 +218,7 @@ async function searchMovie(id) {
 
 //fetch the top torrents from popcorntime, sorted by download_count
 async function topTorrents() {
-    console.log("yts: download_count sort");
+  console.log("yts: download_count sort");
   let url = "https://yts.am/api/v2/list_movies.json?limit=50&page=1&sort_by=download_count&order_by=desc";
   let result = await request(url);
   result = await fetchUsefulData(JSON.parse(result));

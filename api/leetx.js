@@ -160,7 +160,7 @@ async function leetxSearch(query, page, sort) {
 
 // Return top 100 leetx torrents
 async function topTorrents() {
-  console.log("leetx: download_count sort");
+    console.log("leetx: download_count sort");
     let reqURL = `https://1337x.to/top-100-movies`;
 
     let torrents = await fetchPageTorrents(reqURL);

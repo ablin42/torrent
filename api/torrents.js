@@ -1,6 +1,9 @@
 // Load Modules
 const express = require('express');
 const request = require('request-promise');
+const sub = require('yifysubtitles-api');
+const Client = require('node-torrent');
+const client = new Client({logLevel: 'DEBUG'});
 
 // Load Own Modules
 // const leetx = require('./leetx')
@@ -35,6 +38,36 @@ router.get('/top', async (req, res) => {
     status = result.status;
 
   res.status(status).send(result);
+})
+
+router.get('/sub/:imdbid', async (req, res) => {
+  const imdbid = req.params.imdbid;
+  let result = await sub.search({imdbid:imdbid, limit:'best'});
+  let status = 200;
+
+  if (Object.entries(result).length === 0 && result.constructor === Object)
+    result = {status: 200, error: "No content found."}
+  if (result.status != undefined)
+    status = result.status;
+
+  res.status(status).send(result);
+})
+
+router.get('/download', async (req, res) => {
+  torrent =  client.addTorrent('magnet:?xt=urn:btih:2830A64B1D825D5ACFE76A40BD13583D2260A04F&dn=Avengers.Endgame.2019.HDTC.SPECIAL-1337x-EDITION.x264-GalaxyRG&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969&tr=udp%3A%2F%2Ftracker.internetwarriors.net%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80%2Fannounce&tr=udp%3A%2F%2Fexplodie.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.si%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Ftracker.pirateparty.gr%3A6969%2Fannounce&tr=udp%3A%2F%2Fipv4.tracker.harry.lu%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.cyberia.is%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce&tr=udp%3A%2F%2Ftracker.zer0day.to%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Fcoppersurfer.tk%3A6969%2Fannounce');
+
+  // when the torrent completes, move it's files to another area
+torrent.on('complete', function() {
+    console.log('complete!');
+    torrent.files.forEach(function(file) {
+        var newPath = '/new/path/' + file.path;
+        fs.rename(file.path, newPath);
+        // while still seeding need to make sure file.path points to the right place
+        file.path = newPath;
+    });
+    res.status(200).send();
+});
+
 })
 
 //function toptorrents and search
