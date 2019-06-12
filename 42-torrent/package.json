@@ -1,0 +1,15 @@
+{
+  "name": "42-torrent",
+  "version": "1.0.0",
+  "description": "bittorrent client for 42 web project",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app"
+  },
+  "author": "ablin42",
+  "license": "ISC",
+  "dependencies": {
+    "bencode": "^2.0.1",
+    "bignum": "^0.13.0"
+  }
+}
