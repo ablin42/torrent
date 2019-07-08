@@ -9,26 +9,28 @@ const util = require('./utils');
 
 module.exports.getPeers = (torrent, callback) => {
   const socket = dgram.createSocket('udp4');
+  const url = "udp://tracker.internetwarriors.net:1337/announce";
+
+  // 1. send connect request
+  udpSend(socket, buildConnReq(), url, console.log('udp send ok'));
+
   socket.on('message', response => {
     if (respType(response) === 'connect') {
       // 2. receive and parse connect response
       const connResp = parseConnResp(response);
       // 3. send announce request
       const announceReq = buildAnnounceReq(connResp.connectionId, torrent);
+      console.log("respType: connect")
       udpSend(socket, announceReq, url);
     } else if (respType(response) === 'announce') {
+      console.log('respType: announce')
       // 4. parse announce response
       const announceResp = parseAnnounceResp(response);
       // 5. pass peers to callback
       callback(announceResp.peers);
     }
+
   });
-  let url = torrent.announce.toString('utf8');
-
-  // 1. send connect request
-  udpSend(socket, buildConnReq(), url);
-
-
   //  url = urlParse(url);
   //  let message = buildConnReq()
   // socket.send(message, 0, message.length, url.port, url.hostname, callback);
@@ -67,7 +69,7 @@ function parseConnResp(resp) {
   }
 }
 
-function buildAnnounceReq(connId, torrent, port=6881) {
+function buildAnnounceReq(connId, torrent, port=6889) {
   const buf = Buffer.allocUnsafe(98);
 
   // connection id
@@ -89,7 +91,7 @@ function buildAnnounceReq(connId, torrent, port=6881) {
   // event
   buf.writeUInt32BE(0, 80);
   // ip address
-  buf.writeUInt32BE(0, 80);
+  buf.writeUInt32BE(0, 84);
   // key
   crypto.randomBytes(4).copy(buf, 88);
   // num want

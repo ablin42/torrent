@@ -12,5 +12,9 @@
     "bencode": "^2.0.1",
     "bignum": "^0.13.0",
     "npm": "^6.9.1"
-  }
+  },
+  "repository": {
+  "type": "git",
+  "url": "git://github.com/ablin42/torrent.git"
+}
 }

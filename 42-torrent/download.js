@@ -15,28 +15,25 @@ module.exports = (torrent, path) => {
 
 function download(peer, torrent, pieces, file) {
   const socket = new net.Socket();
-  socket.on('error', (error) => {
-    console.log(error)
-  });
   socket.connect(peer.port, peer.ip, () => {
-     console.log('connected')
-    socket.write(message.buildHandshake(torrent));
+    socket.write(message.buildHandshake(torrent), 'utf8');
   });
-  // const queue = new Queue(torrent);
-  // console.log('queued')
-  // onWholeMsg(socket, msg => msgHandler(msg, socket, pieces, queue, torrent, file));
-  // console.log('download fn end')
+  socket.on('error', (error) => {
+    //console.log(error)
+  });
+  const queue = new Queue(torrent);
+  onWholeMsg(socket, msg => msgHandler(msg, socket, pieces, queue, torrent, file));
 }
 
 function onWholeMsg(socket, callback) {
   let savedBuf = Buffer.alloc(0);
   let handshake = true;
-
   socket.on('data', recvBuf => {
+    console.log('DATA in wholemsg')
     // msgLen calculates the length of a whole message
     const msgLen = () => handshake ? savedBuf.readUInt8(0) + 49 : savedBuf.readInt32BE(0) + 4;
     savedBuf = Buffer.concat([savedBuf, recvBuf]);
-
+    console.log("msgLen:", msgLen())
     while (savedBuf.length >= 4 && savedBuf.length >= msgLen()) {
       callback(savedBuf.slice(0, msgLen()));
       savedBuf = savedBuf.slice(msgLen());
@@ -45,17 +42,19 @@ function onWholeMsg(socket, callback) {
   });
 }
 
-function msgHandler(msg, socket, pieces, queue) {
+function msgHandler(msg, socket, pieces, queue, torrent, file) {
+  console.log("msgHandler called")
   if (isHandshake(msg)) {
     socket.write(message.buildInterested());
+    console.log("interested")
   } else {
     const m = message.parse(msg);
-
+    console.log(m)
     if (m.id === 0) chokeHandler(socket);
     if (m.id === 1) unchokeHandler(socket, pieces, queue);
-    if (m.id === 4) haveHandler(m.payload);
-    if (m.id === 5) bitfieldHandler(m.payload);
-    if (m.id === 7) pieceHandler(m.payload);
+    if (m.id === 4) haveHandler(socket, pieces, queue, m.payload);
+    if (m.id === 5) bitfieldHandler(socket, pieces, queue, m.payload);
+    if (m.id === 7) pieceHandler(socket, pieces, queue, torrent, file, m.payload);
   }
 }
 
