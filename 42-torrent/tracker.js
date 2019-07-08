@@ -10,7 +10,6 @@ const util = require('./utils');
 module.exports.getPeers = (torrent, callback) => {
   const socket = dgram.createSocket('udp4');
   socket.on('message', response => {
-    console.log('ow')
     if (respType(response) === 'connect') {
       // 2. receive and parse connect response
       const connResp = parseConnResp(response);
