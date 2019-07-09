@@ -4,6 +4,11 @@ const request = require('request-promise');
 const sub = require('yifysubtitles-api');
 const Client = require('node-torrent');
 const client = new Client({logLevel: 'DEBUG'});
+const AdmZip = require('adm-zip')
+const http = require('http');
+const fs = require('fs');
+
+const glob = require('glob');
 
 // Load Own Modules
 // const leetx = require('./leetx')
@@ -51,6 +56,53 @@ router.get('/sub/:imdbid', async (req, res) => {
     status = result.status;
 
   res.status(status).send(result);
+})
+
+//Download subtitles for a movie in specified language
+router.get('/getsub/:imdbid/:lang', async (req, res) => {
+  const imdbid = req.params.imdbid;
+  const userLanguage = req.params.lang;
+  const subtitles = await request({"uri":`${BaseUrl}/torrents/sub/${imdbid}`, "json": true});
+  let subUrl = undefined;
+  let subName = undefined;
+
+  if (!subtitles.status){
+    Object.values(subtitles).forEach((language, index) => {
+       for (let track of language) {
+         if (track.langName === userLanguage) {
+           subUrl = track.url;
+           subName = track.release;
+           break;
+         }
+       }
+    })
+    if (subUrl && subName) {
+      if (!fs.existsSync('./sub')) {
+        fs.mkdirSync('./sub');
+      }
+
+      let dir = `./sub/${subName}`;
+      if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir);
+      }
+      request(subUrl)
+        .pipe(fs.createWriteStream(`./sub/${subName}/${subName}-${userLanguage}.zip`))
+        .on('error', (err) => console.log)
+        .on('close', () => {
+          let zip = new AdmZip(`./sub/${subName}/${subName}-${userLanguage}.zip`);
+          zip.extractAllTo(`./sub/${subName}/${userLanguage}`, true);
+          glob(`./sub/**/${userLanguage}/*.srt`, {}, (err, file) => {
+            fs.rename(file[0], `./sub/${subName}/${userLanguage}/${userLanguage}-subtitles.srt`, () => {});
+          })
+          console.log('Zip downloaded and extracted!')
+        })
+    }
+    else {
+        res.status(200).send("No subtitles found for this language");
+        return ;
+    }
+  }
+  res.status(200).send(subtitles);
 })
 
 router.get('/download', async (req, res) => {
