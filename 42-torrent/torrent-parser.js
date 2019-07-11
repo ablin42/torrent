@@ -8,8 +8,6 @@ const bignum = require('bignum');
 module.exports.BLOCK_LEN = Math.pow(2, 14);
 
 module.exports.open = (filepath) => {
-  //console.log('xd ')
-  //console.log(bencode.decode(fs.readFileSync(filepath)))
   return bencode.decode(fs.readFileSync(filepath));
 };
 

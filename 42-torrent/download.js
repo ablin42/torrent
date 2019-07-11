@@ -29,11 +29,9 @@ function onWholeMsg(socket, callback) {
   let savedBuf = Buffer.alloc(0);
   let handshake = true;
   socket.on('data', recvBuf => {
-    console.log('DATA in wholemsg')
     // msgLen calculates the length of a whole message
     const msgLen = () => handshake ? savedBuf.readUInt8(0) + 49 : savedBuf.readInt32BE(0) + 4;
     savedBuf = Buffer.concat([savedBuf, recvBuf]);
-    console.log("msgLen:", msgLen())
     while (savedBuf.length >= 4 && savedBuf.length >= msgLen()) {
       callback(savedBuf.slice(0, msgLen()));
       savedBuf = savedBuf.slice(msgLen());
@@ -43,13 +41,11 @@ function onWholeMsg(socket, callback) {
 }
 
 function msgHandler(msg, socket, pieces, queue, torrent, file) {
-  console.log("msgHandler called")
   if (isHandshake(msg)) {
     socket.write(message.buildInterested());
-    console.log("interested")
   } else {
     const m = message.parse(msg);
-    console.log(m)
+    //console.log(m)
     if (m.id === 0) chokeHandler(socket);
     if (m.id === 1) unchokeHandler(socket, pieces, queue);
     if (m.id === 4) haveHandler(socket, pieces, queue, m.payload);
@@ -91,11 +87,14 @@ function bitfieldHandler(socket, pieces, queue, payload) {
 }
 
 function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
-  console.log(pieceResp);
+    pieces.printPercentDone();
+//  console.log(queue._queue);
+  //console.log(pieceResp);
   pieces.addReceived(pieceResp);
 
   const offset = pieceResp.index * torrent.info['piece length'] + pieceResp.begin;
   fs.write(file, pieceResp.block, 0, pieceResp.block.length, offset, () => {});
+  //console.log(`Wrote ${pieceResp.block.length} bits to ${file} @ offset ${offset} | ${torrent.info['piece length']} | `);//`${100 * (current / total)}%`);
 
   // write
 
