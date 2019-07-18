@@ -218,8 +218,6 @@ async function tryAnnounceList(torrent, udpSocket, callback) {
       if (isConnected === false) {
         tryToConnect(udpSocket, urlx, torrent, callback);
       }
-      // eslint-disable-next-line no-await-in-loop
-    //  await waitFor(3000);
     }
   }
 }
