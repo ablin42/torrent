@@ -12,6 +12,8 @@ module.exports = class {
     for (let i = 0; i < nBlocks; i++) {
       const pieceBlock = {
         index: pieceIndex,
+        blockI: i,
+        nBlocks: nBlocks,
         begin: i * tp.BLOCK_LEN,
         length: tp.blockLen(this._torrent, pieceIndex, i)
       };

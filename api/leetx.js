@@ -81,7 +81,7 @@ async function getTorrentsInfo(torrents) {
   await Promise.all(
     torrents.map(async (torrent, index, tab) => {
       torrent.source = "leetx";
-      const responseTorrent = await request(torrent.url);
+      const responseTorrent = await request(torrent.url, {timeout: 1000}).catch(() => {console.log("This page wasnt answering fast enough")});
       torrent.imdbid = responseTorrent.match(/(?<=\:\/\/www\.imdb\.com\/title\/)tt([0-9]+)/g);
       if (torrent.imdbid)
         torrent.imdbid = torrent.imdbid[0];
@@ -99,22 +99,22 @@ async function getTorrentsInfo(torrents) {
       } else {
         torrents[index] = null
       }
-
       date = new Date(torrent.date);
       timestamp = date.getTime();
       torrent.date = timestamp;
       torrent.id = torrent.url.substr(24);
       torrent.seeders = parseInt(torrent.seeders);
       torrent.leechers = parseInt(torrent.leechers);
-      torrent.api_url = `api/leetx/movie/${torrent.id}`;
+      torrent.api_url = `api/leetx/movie${torrent.id}`;
       torrent.url = undefined;
       torrent.imdb = undefined;
+
       if (torrent.size.indexOf("GB") != -1)
         torrent.size = parseFloat(torrent.size) * 1000000000;
       else
         torrent.size = parseFloat(torrent.size) * 1000000;
     })
-  );
+  ).catch(() => {return torrents.filter(e => e)});
   return torrents.filter(e => e);
 }
 
@@ -179,14 +179,14 @@ async function topTorrents() {
 // Search a specific movie info
 async function searchMovie(id, name) {
   let url = `https://1337x.to/torrent/${id}/${name}/`;
-  let obj = await xray(url, '.box-info-detail.no-top-radius', [{
-    size: 'div.torrent-category-detail.clearfix > ul:nth-child(2) > li:nth-child(4) > span',
-    language: 'div.torrent-category-detail.clearfix > ul:nth-child(2) > li:nth-child(3) > span',
+  let obj = await xray(url, 'div.lff9f537a621f5dd030164ba72f58472a76456f9a.no-top-radius', [{
+    size: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(2) > li:nth-child(4) > span',
+    language: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(2) > li:nth-child(3) > span',
     seeders: '.seeds',
     leechers: '.leeches',
-    magnet: 'div.torrent-category-detail.clearfix > ul.download-links-dontblock.btn-wrap-list > li:nth-child(1) > a@href',
+    magnet: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul.ld25fc4e3d11f9f55d671eb3537e6dd7128a8dcb7.l892cd5a4f648e31f24da52d83a3af8ce6101b739 > li:nth-child(1) > a@href',
     imdbid: '#description',
-    date_uploaded: 'div.torrent-category-detail.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
+    date_uploaded: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
   }])
   if (obj.length == 0) {
     obj = {

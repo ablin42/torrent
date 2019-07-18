@@ -6,9 +6,9 @@ const Queue = require('./Queue');
 const fs = require('fs');
 
 module.exports = (torrent, path) => {
+    const file = fs.openSync(path, 'w');
   tracker.getPeers(torrent, peers => {
     const pieces = new Pieces(torrent);
-    const file = fs.openSync(path, 'w');
     peers.forEach(peer => download(peer, torrent, pieces, file));
   });
 };
@@ -45,7 +45,7 @@ function msgHandler(msg, socket, pieces, queue, torrent, file) {
     socket.write(message.buildInterested());
   } else {
     const m = message.parse(msg);
-    //console.log(m)
+    console.log(m.id)
     if (m.id === 0) chokeHandler(socket);
     if (m.id === 1) unchokeHandler(socket, pieces, queue);
     if (m.id === 4) haveHandler(socket, pieces, queue, m.payload);
@@ -60,6 +60,7 @@ function isHandshake(msg) {
 }
 
 function chokeHandler(socket) {
+  console.log("X")
   socket.end();
 }
 
@@ -70,8 +71,10 @@ function unchokeHandler(socket, pieces, queue) {
 
 function haveHandler(socket, pieces, queue, payload) {
   const pieceIndex = payload.readInt32BE(0);
-  const queueEmpty =  queue.length === 0;
+  //console.log(pieceIndex)
+  const queueEmpty = queue.length === 0;
   queue.queue(pieceIndex);
+  //console.log(queue._queue)
   if (queueEmpty) requestPiece(socket, pieces, queue);
 }
 
@@ -91,7 +94,7 @@ function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
 //  console.log(queue._queue);
   //console.log(pieceResp);
   pieces.addReceived(pieceResp);
-
+  //console.log(pieces._request, pieces._received, "x")
   const offset = pieceResp.index * torrent.info['piece length'] + pieceResp.begin;
   fs.write(file, pieceResp.block, 0, pieceResp.block.length, offset, () => {});
   //console.log(`Wrote ${pieceResp.block.length} bits to ${file} @ offset ${offset} | ${torrent.info['piece length']} | `);//`${100 * (current / total)}%`);

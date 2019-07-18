@@ -9,10 +9,12 @@ let isConnected = false;
 
 function udpSend(udpSocket, message, rawUrl, callback = () => {console.log('buffer has been sent')}) {
   const parsedUrl = urlParse(rawUrl);
-  udpSocket.send(message, 0, message.length, parsedUrl.port, parsedUrl.hostname, (err, bytes) => {
-    if (err) console.error(err);
-    console.log(`UDP message sent to ${parsedUrl.hostname}:${parsedUrl.port}`);
-  });
+  if ( parsedUrl.port > 0) {
+    udpSocket.send(message, 0, message.length, parsedUrl.port, parsedUrl.hostname, (err, bytes) => {
+      // if (err) console.error(err);
+      // console.log(`UDP message sent to ${parsedUrl.hostname}:${parsedUrl.port}`);
+    });
+  }
 }
 
 function respType(resp) {
@@ -85,7 +87,7 @@ function parseAnnounceResp(resp) {
     for (let i = 0; i < iterable.length; i += groupSize) {
       groups.push(iterable.slice(i, i + groupSize));
     }
-    console.log('groups is ', groups);
+    //console.log('groups is ', groups);
     return groups;
   }
 
@@ -102,7 +104,6 @@ function parseAnnounceResp(resp) {
 }
 
 function tryToConnect(udpSocket, url, torrent, callback) {
-
   udpSend(udpSocket, buildConnReq(), url);
 
   udpSocket.on('error', (err) => {
@@ -112,9 +113,7 @@ function tryToConnect(udpSocket, url, torrent, callback) {
 
   udpSocket.on('message', (response) => {
     isConnected = true;
-    console.log('Socket ON!!!!');
     if (respType(response) === 'connect') {
-      console.log('connect');
       // 2. receive and parse connect response
       const connResp = parseConnResp(response);
       // 3. send announce request
@@ -122,13 +121,12 @@ function tryToConnect(udpSocket, url, torrent, callback) {
       udpSend(udpSocket, announceReq, url);
     }
     else if (respType(response) === 'announce') {
-      console.log('announce');
       // 4. parse announce response
       const announceResp = parseAnnounceResp(response);
       // 5. pass peers to callback
       callback(announceResp.peers);
     } else {
-      console.log("SOMETHING WENT WRONT WITH YOUR TRACKER");
+    //  console.log("SOMETHING WENT WRONG WITH YOUR TRACKER");
     }
   });
 }
@@ -140,6 +138,70 @@ function tryOfficialAnounce(torrent, udpSocket, callback) {
   tryToConnect(udpSocket, url, torrent, callback);
 }
 
+trackers = ["udp://107.150.14.110:6969/announce"]
+// "udp://109.121.134.121:1337/announce",
+// "udp://114.55.113.60:6969/announce",
+// "udp://128.199.70.66:5944/announce",
+// "udp://151.80.120.114:2710/announce",
+// "udp://168.235.67.63:6969/announce",
+// "udp://178.33.73.26:2710/announce",
+// "udp://182.176.139.129:6969/announce",
+// "udp://185.5.97.139:8089/announce",
+// "udp://185.86.149.205:1337/announce",
+// "udp://188.165.253.109:1337/announce",
+// "udp://191.101.229.236:1337/announce",
+// "udp://194.106.216.222:80/announce",
+// "udp://195.123.209.37:1337/announce",
+// "udp://195.123.209.40:80/announce",
+// "udp://208.67.16.113:8000/announce",
+// "udp://213.163.67.56:1337/announce",
+// "udp://37.19.5.155:2710/announce",
+// "udp://46.4.109.148:6969/announce",
+// "udp://5.79.249.77:6969/announce",
+// "udp://5.79.83.193:6969/announce",
+// "udp://51.254.244.161:6969/announce",
+// "udp://62.138.0.158:6969/announce",
+// "udp://62.212.85.66:2710/announce",
+// "udp://74.82.52.209:6969/announce",
+// "udp://85.17.19.180:80/announce",
+// "udp://89.234.156.205:80/announce",
+// "udp://9.rarbg.com:2710/announce",
+// "udp://9.rarbg.me:2780/announce",
+// "udp://9.rarbg.to:2730/announce",
+// "udp://91.218.230.81:6969/announce",
+// "udp://94.23.183.33:6969/announce",
+// "udp://bt.xxx-tracker.com:2710/announce",
+// "udp://eddie4.nl:6969/announce",
+// "udp://explodie.org:6969/announce",
+// "udp://mgtracker.org:2710/announce",
+// "udp://open.stealth.si:80/announce",
+// "udp://p4p.arenabg.com:1337/announce",
+// "udp://shadowshq.eddie4.nl:6969/announce",
+// "udp://shadowshq.yi.org:6969/announce",
+// "udp://torrent.gresille.org:80/announce",
+// "udp://tracker.aletorrenty.pl:2710/announce",
+// "udp://tracker.bittor.pw:1337/announce",
+// "udp://tracker.coppersurfer.tk:6969/announce",
+// "udp://tracker.eddie4.nl:6969/announce",
+// "udp://tracker.ex.ua:80/announce",
+// "udp://tracker.filetracker.pl:8089/announce",
+// "udp://tracker.flashtorrents.org:6969/announce",
+// "udp://tracker.grepler.com:6969/announce",
+// "udp://tracker.ilibr.org:80/announce",
+// "udp://tracker.internetwarriors.net:1337/announce",
+// "udp://tracker.kicks-ass.net:80/announce",
+// "udp://tracker.kuroy.me:5944/announce",
+// "udp://tracker.leechers-paradise.org:6969/announce",
+// "udp://tracker.mg64.net:2710/announce",
+// "udp://tracker.mg64.net:6969/announce",
+// "udp://tracker.opentrackr.org:1337/announce",
+// "udp://tracker.piratepublic.com:1337/announce",
+// "udp://tracker.sktorrent.net:6969/announce",
+// "udp://tracker.skyts.net:6969/announce",
+// "udp://tracker.tiny-vps.com:6969/announce",
+// "udp://tracker.yoshi210.com:6969/announce",
+// "udp://tracker2.indowebster.com:6969/announce",
+// "udp://tracker4.piratux.com:6969/announce", "udp://zer0day.ch:1337/announce","udp://zer0day.to:1337/announce"]
 async function tryAnnounceList(torrent, udpSocket, callback) {
   if (isConnected === false) {
     // eslint-disable-next-line no-restricted-syntax
@@ -149,13 +211,22 @@ async function tryAnnounceList(torrent, udpSocket, callback) {
         tryToConnect(udpSocket, url, torrent, callback);
       }
       // eslint-disable-next-line no-await-in-loop
-      await waitFor(3000);
+      //await waitFor(3000);
+    }
+    for (const tor of trackers) {
+      const urlx = tor.toString('utf8');
+      if (isConnected === false) {
+        tryToConnect(udpSocket, urlx, torrent, callback);
+      }
+      // eslint-disable-next-line no-await-in-loop
+    //  await waitFor(3000);
     }
   }
 }
 
 module.exports.getPeers = async (torrent, callback) => {
   const udpSocket = dgram.createSocket('udp4');
+   udpSocket.setMaxListeners(1000)
 
   tryOfficialAnounce(torrent, udpSocket, callback);
   await waitFor(3000);

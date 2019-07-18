@@ -5,6 +5,7 @@ module.exports = class {
     function buildPiecesArray() {
       const nPieces = torrent.info.pieces.length / 20;
       const arr = new Array(nPieces).fill(null);
+      console.log(tp.blocksPerPiece(torrent, 0), "x");
       return arr.map((_, i) => new Array(tp.blocksPerPiece(torrent, i)).fill(false));
     }
 
@@ -20,6 +21,7 @@ module.exports = class {
   addReceived(pieceBlock) {
     const blockIndex = pieceBlock.begin / tp.BLOCK_LEN;
     this._received[pieceBlock.index][blockIndex] = true;
+    console.log(pieceBlock.index, blockIndex)
   }
 
   needed(pieceBlock) {
