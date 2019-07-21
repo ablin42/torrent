@@ -179,14 +179,14 @@ async function topTorrents() {
 // Search a specific movie info
 async function searchMovie(id, name) {
   let url = `https://1337x.to/torrent/${id}/${name}/`;
-  let obj = await xray(url, 'div.lff9f537a621f5dd030164ba72f58472a76456f9a.no-top-radius', [{
-    size: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(2) > li:nth-child(4) > span',
-    language: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(2) > li:nth-child(3) > span',
+  let obj = await xray(url, 'div.no-top-radius', [{
+    size: 'div.clearfix > ul:nth-child(2) > li:nth-child(4) > span',
+    language: 'div.clearfix > ul:nth-child(2) > li:nth-child(3) > span',
     seeders: '.seeds',
     leechers: '.leeches',
-    magnet: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul.ld25fc4e3d11f9f55d671eb3537e6dd7128a8dcb7.l892cd5a4f648e31f24da52d83a3af8ce6101b739 > li:nth-child(1) > a@href',
+    magnet: 'div.clearfix > ul > li:nth-child(1) > a@href',
     imdbid: '#description',
-    date_uploaded: 'div.ldfd21a3e238b141d5d974e210df267d85f8711d4.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
+    date_uploaded: 'div.clearfix > ul:nth-child(3) > li:nth-child(3) > span'
   }])
   if (obj.length == 0) {
     obj = {
@@ -195,7 +195,6 @@ async function searchMovie(id, name) {
     }
     return obj;
   }
-
   obj = obj[0];
   obj.seeders = parseInt(obj.seeders);
   obj.leechers = parseInt(obj.leechers);
@@ -212,7 +211,6 @@ async function searchMovie(id, name) {
     if (obj.imdbid) {
       obj.imdbid = obj.imdbid[0];
     }
-
     if (obj.imdbid != null) {
       obj.imdb = await imdb.get({id: obj.imdbid}, {apiKey: 'fea4440e'}).catch(e => console.error(e))
       obj.name = obj.imdb.title;
@@ -220,7 +218,7 @@ async function searchMovie(id, name) {
       obj.genre = obj.imdb.genres.split(", ");
       obj.year = obj.imdb.year;
       obj.runtime = obj.imdb.runtime;
-      obj.language = obj.imdb.languages.split(", ").map(i => i.substr(0, 2));
+      //obj.language = obj.imdb.languages.split(", ").map(i => i.substr(0, 2));
       obj.img = obj.imdb.poster;
       obj.description = obj.imdb.plot;
       obj.actors = obj.imdb.actors.split(", ");
@@ -233,7 +231,6 @@ async function searchMovie(id, name) {
           error: "No content found."
         }
     }
-
     obj.slug = slug(obj.name, {lower:true});
     obj.torrents = [{
         url: `https://1337x.to/torrent/${obj.id}`,
