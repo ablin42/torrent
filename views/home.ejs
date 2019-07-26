@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Home</title>
+</head>
+
+<body>
+    <form method="POST" action="http://localhost:8089/search/">
+        <label for="query">query</label>
+        <input type="text" name="query">
+        <select name="type">
+            <option value="title">title</option>
+            <option value="year">year</option>
+            <option value="seeders">seeders</option>
+            <option value="leechers">leechers</option>
+            <option value="rating">rating</option>
+        </select>
+        <select name="order">
+            <option value="asc">ASC</option>
+            <option value="desc">DES</option>
+        </select>
+        <input type="hidden" name="page" value="1">
+        <input type="submit" value="search">
+    </form>
+    <div style="display: grid; grid-template-columns: repeat(8, 1fr); grid-gap: 1em">
+        <% for (i = 0; i < JSON.parse(top).length; i++) { %>
+        <div style="border: double 1px red; padding: 1em">
+            <li><%= JSON.parse(top)[i].name %></li>
+            <li><%= JSON.parse(top)[i].rating %></li>
+            <li><%= JSON.parse(top)[i].runtime %></li>
+            <li><%= JSON.parse(top)[i].year %></li>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>
