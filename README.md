@@ -1,4 +1,6 @@
 # torrent
+> - This is part of 42's last web project from main branch: Hypertube
+> - PDF here: https://github.com/fpetras/42-subjects/blob/master/hypertube.en.pdf
 
 ## This is an API that fetch torrents based either on name, genre, or ranking from different torrent providers:
 ### Depending on movie, subtitles are also available...
